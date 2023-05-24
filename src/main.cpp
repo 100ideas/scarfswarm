@@ -1,4 +1,8 @@
+// FastLED hw SPI pull request
+// https://github.com/FastLED/FastLED/pull/1047
+//
 // // https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
+// // https://lastminuteengineers.com/esp32-pinout-reference/
 // #define VSPI_MISO   19
 // #define VSPI_MOSI   23  // apa102 logic input ("Master Out Slave In")
 // #define VSPI_SCLK   18  // apa102 clock input
