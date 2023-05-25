@@ -24,7 +24,6 @@ GND   -> GND
 #include "SPI.h"
 #include "NRFLite.h"
 
-const static uint8_t RADIO_ID = 0;
 const static uint8_t PIN_RADIO_CE = 4;
 const static uint8_t PIN_RADIO_CSN = 5;
 const static uint8_t PIN_RADIO_MOSI = 23;
@@ -33,13 +32,17 @@ const static uint8_t PIN_RADIO_SCK = 18;
 
 struct __attribute__((packed)) RadioPacket // Note the packed attribute.
 {
-    uint8_t FromRadioId;
+    uint8_t SenderId;
     uint32_t OnTimeMillis;
     uint32_t FailedTxCount;
 };
 
 NRFLite _radio;
 RadioPacket _radioData;
+
+const static uint8_t RADIO_ID = random();
+const static uint8_t SHARED_RADIO_ID = 0;
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -90,14 +93,16 @@ void setup() {
     // Indicate to NRFLite that it should not call SPI.begin() during initialization since it has already been done.
     uint8_t callSpiBegin = 0;
     
-    if (!_radio.init(RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE2MBPS, 100, callSpiBegin))
+    // init radio w common ID so all are in "broadcast" mode
+    if (!_radio.init(SHARED_RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE2MBPS, 100, callSpiBegin))
     {
         Serial.println("Cannot communicate with radio");
         while (1); // Wait here forever.
     }
     Serial.println("setup()... _radio.init() complete");
 
-
+    _radioData.SenderId = RADIO_ID;
+    _radioData.FailedTxCount = 0;
 
 	// sanity check delay - allows reprogramming if accidently blowing power w/leds
    	delay(2000);
@@ -182,21 +187,53 @@ void Fire2012()
 
 void loop()
 {
+    _radioData.OnTimeMillis = millis();
+
+    // enter SEND mode AT MOST every ~1 sec or so 
+    // (millis() will always not always be called w/ sub-ms frequency)
+    if (_radioData.OnTimeMillis % 1000 == 0)
+    {
+        String msg = "<== SENT [";
+        msg += RADIO_ID;
+        msg += "=>";
+        msg += SHARED_RADIO_ID;
+        msg += "]: ";
+        msg += _radioData.OnTimeMillis;
+        msg += " ms (";
+        msg += _radioData.FailedTxCount;
+        msg += " Failed TX)";
+        Serial.print(msg);
+        
+        // liteswarm#master/Radio.h#72
+        // _radio.send(SHARED_RADIO_ID, &_outboundRadioPacket, sizeof(_outboundRadioPacket), NRFLite::NO_ACK);
+        if (_radio.send(SHARED_RADIO_ID, &_radioData, sizeof(_radioData)), NRFLite::NO_ACK)
+        {
+            Serial.println("...Success");
+        }
+        else
+        {
+            Serial.println("...Failed");
+            _radioData.FailedTxCount++;
+        }
+    }
+
+    // SIDE-EFFECT: hasData() leaves radio in receive mode
     while (_radio.hasData())
     {
         _radio.readData(&_radioData);
-
-        String msg = "Radio ";
-        msg += _radioData.FromRadioId;
-        msg += ", ";
+        
+        String msg = "==> RCVD [  ";
+        msg += _radioData.SenderId;
+        msg += "=>";
+        msg += SHARED_RADIO_ID;
+        msg += "]: ";
         msg += _radioData.OnTimeMillis;
-        msg += " ms, ";
+        msg += " ms (";
         msg += _radioData.FailedTxCount;
-        msg += " Failed TX";
+        msg += " Failed TX)";
 
         Serial.println(msg);
     }
-
 
 
   // Add entropy to random number generator; we use a lot of it.
