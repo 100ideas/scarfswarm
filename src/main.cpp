@@ -42,12 +42,6 @@ NRFLite _radio;
 RadioPacket _radioData;
 
 
-
-
-
-
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////
 //
 // FastLED hw SPI pull request
@@ -87,10 +81,29 @@ CRGB leds[NUM_LEDS];
 
 // This function sets up the ledsand tells the controller about them
 void setup() {
+    Serial.begin(115200);
+    Serial.println("setup()...");
+
+    // Configure SPI pins.
+    SPI.begin(PIN_RADIO_SCK, PIN_RADIO_MISO, PIN_RADIO_MOSI, PIN_RADIO_CSN);
+    
+    // Indicate to NRFLite that it should not call SPI.begin() during initialization since it has already been done.
+    uint8_t callSpiBegin = 0;
+    
+    if (!_radio.init(RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE2MBPS, 100, callSpiBegin))
+    {
+        Serial.println("Cannot communicate with radio");
+        while (1); // Wait here forever.
+    }
+    Serial.println("setup()... _radio.init() complete");
+
+
+
 	// sanity check delay - allows reprogramming if accidently blowing power w/leds
    	delay(2000);
 
     FastLED.addLeds<APA102, DATA_PIN, CLOCK_PIN, BGR>(leds, NUM_LEDS);  // BGR ordering is typical
+    Serial.println("setup()... FastLED.addLeds() complete\n");
 }
 
 // Fire2012 by Mark Kriegsman, July 2012
@@ -169,6 +182,23 @@ void Fire2012()
 
 void loop()
 {
+    while (_radio.hasData())
+    {
+        _radio.readData(&_radioData);
+
+        String msg = "Radio ";
+        msg += _radioData.FromRadioId;
+        msg += ", ";
+        msg += _radioData.OnTimeMillis;
+        msg += " ms, ";
+        msg += _radioData.FailedTxCount;
+        msg += " Failed TX";
+
+        Serial.println(msg);
+    }
+
+
+
   // Add entropy to random number generator; we use a lot of it.
   // random16_add_entropy( random());
 
