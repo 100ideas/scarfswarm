@@ -1,3 +1,55 @@
+/*
+https://github.com/dparson55/NRFLite/blob/4e425d742ca8879d654a270c7c02c13440476e7a/examples/Basic_RX_ESP32/Basic_RX_ESP32.ino
+
+Demonstrates simple RX operation with an ESP32.
+Any of the Basic_TX examples can be used as a transmitter.
+
+ESP's require the use of '__attribute__((packed))' on the RadioPacket data structure
+to ensure the bytes within the structure are aligned properly in memory.
+
+The ESP32 SPI library supports configurable SPI pins and NRFLite's mechanism to support this is shown.
+
+Radio    ESP32 module
+CE    -> 4
+CSN   -> 5
+MOSI  -> 23
+MISO  -> 19
+SCK   -> 18
+IRQ   -> No connection
+VCC   -> No more than 3.6 volts
+GND   -> GND
+
+*/
+
+#include "SPI.h"
+#include "NRFLite.h"
+
+const static uint8_t RADIO_ID = 0;
+const static uint8_t PIN_RADIO_CE = 4;
+const static uint8_t PIN_RADIO_CSN = 5;
+const static uint8_t PIN_RADIO_MOSI = 23;
+const static uint8_t PIN_RADIO_MISO = 19;
+const static uint8_t PIN_RADIO_SCK = 18;
+
+struct __attribute__((packed)) RadioPacket // Note the packed attribute.
+{
+    uint8_t FromRadioId;
+    uint32_t OnTimeMillis;
+    uint32_t FailedTxCount;
+};
+
+NRFLite _radio;
+RadioPacket _radioData;
+
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+//
 // FastLED hw SPI pull request
 // https://github.com/FastLED/FastLED/pull/1047
 //
@@ -16,19 +68,16 @@
 // #define FASTLED_FORCE_SOFTWARE_SPI
 // #define FASTLED_FORCE_SOFTWARE_PINS
 
-
-///////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////
-
-
 // TODO figure out why PIO GCC is unhappy with Fx declarations out of lexical order...
+// ... possibly related to platformio.ini lib_ldf_mode = deep 
 
 #include <FastLED.h>
 
+// #define DATA_PIN 18
+// #define CLOCK_PIN 5
+#define DATA_PIN 13
+#define CLOCK_PIN 14
 #define NUM_LEDS 60
-#define DATA_PIN 18
-#define CLOCK_PIN 5
 #define FRAMES_PER_SECOND 60
 
 bool gReverseDirection = false;
