@@ -23,12 +23,8 @@ GND   -> GND
 
 #include "SPI.h"
 #include "NRFLite.h"
-
-const static uint8_t PIN_RADIO_CE = 4;
-const static uint8_t PIN_RADIO_CSN = 5;
-const static uint8_t PIN_RADIO_MOSI = 23;
-const static uint8_t PIN_RADIO_MISO = 19;
-const static uint8_t PIN_RADIO_SCK = 18;
+#include "config.h"
+#include "Knob.h"
 
 struct __attribute__((packed)) RadioPacket // Note the packed attribute.
 {
@@ -82,6 +78,9 @@ bool gReverseDirection = false;
 // This is an array of leds.  One item for each led in your strip.
 CRGB leds[NUM_LEDS];
 
+// Knob * knob{};
+Knob knob{};
+
 // This function sets up the ledsand tells the controller about them
 void setup() {
     Serial.begin(115200);
@@ -109,6 +108,9 @@ void setup() {
 
     FastLED.addLeds<APA102, DATA_PIN, CLOCK_PIN, BGR>(leds, NUM_LEDS);  // BGR ordering is typical
     Serial.println("setup()... FastLED.addLeds() complete\n");
+
+    knob.setup();
+    Serial.println("setup()... knob.setup() complete\n");
 }
 
 // Fire2012 by Mark Kriegsman, July 2012
