@@ -1,4 +1,5 @@
-
+#pragma once
+#include <cstdint>
 
 const static uint8_t PIN_RADIO_CE = 4;
 const static uint8_t PIN_RADIO_CSN = 5;
