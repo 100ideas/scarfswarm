@@ -45,6 +45,8 @@ class Knob {
 
   int32_t getCorrectedValue() {
     int32_t position = encoder.getCount();
+    Serial.print("  Knob.getCorrectedValue()::encoder.getCount(): ");
+    Serial.println(position);
     if (position < minValue) {
       position = loopRotary ? maxValue : minValue;
       encoder.setCount(position);

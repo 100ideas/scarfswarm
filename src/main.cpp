@@ -8,23 +8,13 @@ ESP's require the use of '__attribute__((packed))' on the RadioPacket data struc
 to ensure the bytes within the structure are aligned properly in memory.
 
 The ESP32 SPI library supports configurable SPI pins and NRFLite's mechanism to support this is shown.
-
-Radio    ESP32 module
-CE    -> 4
-CSN   -> 5
-MOSI  -> 23
-MISO  -> 19
-SCK   -> 18
-IRQ   -> No connection
-VCC   -> No more than 3.6 volts
-GND   -> GND
-
 */
 
 #include "SPI.h"
 #include "NRFLite.h"
 #include "config.h"
 #include "Knob.h"
+#include <Arduino.h>
 
 struct __attribute__((packed)) RadioPacket // Note the packed attribute.
 {
@@ -37,7 +27,7 @@ NRFLite _radio;
 RadioPacket _radioData;
 
 const static uint8_t RADIO_ID = random();
-const static uint8_t SHARED_RADIO_ID = 0;
+const static uint8_t SHARED_RADIO_ID = 42;
 
 
 
@@ -83,6 +73,16 @@ Knob knob{};
 
 // This function sets up the ledsand tells the controller about them
 void setup() {
+    // knob values latching -> 0 or 100; not sure why,
+    // maybe need pulllups?
+    pinMode(rotary1, INPUT_PULLUP);
+    pinMode(rotary2, INPUT_PULLUP);
+    // TODO: getting erratic knob position counts from getCount()
+    // - review docs
+    // - set up knob in isolated bread board & esp
+    // - repliate/resolve bug
+
+
     Serial.begin(115200);
     Serial.println("setup()...");
 
@@ -96,9 +96,9 @@ void setup() {
     if (!_radio.init(SHARED_RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE2MBPS, 100, callSpiBegin))
     {
         Serial.println("Cannot communicate with radio");
-        while (1); // Wait here forever.
+        // while (1); // Wait here forever.
     }
-    Serial.println("setup()... _radio.init() complete");
+    Serial.println("main.setup(): _radio.init() complete");
 
     _radioData.SenderId = RADIO_ID;
     _radioData.FailedTxCount = 0;
@@ -107,10 +107,12 @@ void setup() {
    	delay(2000);
 
     FastLED.addLeds<APA102, DATA_PIN, CLOCK_PIN, BGR>(leds, NUM_LEDS);  // BGR ordering is typical
-    Serial.println("setup()... FastLED.addLeds() complete\n");
+    Serial.println("main.setup(): FastLED.addLeds() complete\n");
 
     knob.setup();
-    Serial.println("setup()... knob.setup() complete\n");
+    Serial.println("main.setup(): knob.setup() complete\n");
+    Serial.println("knob.get(): ");
+    Serial.print(knob.get());
 }
 
 // Fire2012 by Mark Kriegsman, July 2012
@@ -189,6 +191,17 @@ void Fire2012()
 
 void loop()
 {
+
+    Serial.println("loop(): knob.update()...");
+    knob.update();
+    
+    // TODO remove .5sec delay (just for prototyping)
+    delay(500);
+
+    Serial.print("knob.get(): ");
+    Serial.println(knob.get());
+
+
     _radioData.OnTimeMillis = millis();
 
     // enter SEND mode AT MOST every ~1 sec or so 
