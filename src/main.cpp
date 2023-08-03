@@ -1,4 +1,12 @@
 #include <Arduino.h>
+
+#include <ESP32Encoder.h>
+ESP32Encoder encoder;
+// timer and flag for example, not needed for encoders
+unsigned long encoderlastToggled;
+bool encoderPaused = false;
+
+
 // #define ARDUINO_RUNNING_CORE 1
 
 /* FastLED ESP32 Hardware SPI Driver
@@ -51,6 +59,7 @@ TaskHandle_t analog_read_task_handle; // You can (don't have to) use this to be 
 #define ANALOG_INPUT_PIN 39 // Vbatt (A3 on feather)
 
 
+
 void setup() {
   // Initialize serial communication at 115200 bits per second:
   Serial.begin(115200);
@@ -59,6 +68,21 @@ void setup() {
   FastLED.addLeds<APA102, LED_spiMosi, LED_spiClk, BGR>(leds, NUM_LEDS);  // BGR ordering is typical
   FastLED.setBrightness(84);
   Serial.println("main.setup(): FastLED.addLeds() complete\n");
+
+
+  // https://github.com/madhephaestus/ESP32Encoder/blob/master/examples/Encoder/Encoder.ino
+  ESP32Encoder::useInternalWeakPullResistors=UP;
+	// use pin 19 and 18 for the first encoder
+	encoder.attachHalfQuad(17, 16);
+  // set starting count value after attaching
+	encoder.setCount(37);
+	// clear the encoder's raw count and set the tracked count to zero
+	// encoder.clearCount();
+	Serial.println("Encoder Start = " + String((int32_t)encoder.getCount()));
+	// set the lastToggle
+	encoderlastToggled = millis();
+
+
 
   // Set up two tasks to run independently.
   xTaskCreatePinnedToCore(
@@ -103,7 +127,14 @@ void loop() {
     analog_read_task_handle = NULL; // prevent calling vTaskDelete on non-existing task
     Serial.println("vTaskDelete(analog_read_task_handle); // Delete task");
   }
+
+  // Loop and read the count
+	Serial.println("Encoder count = " + String((int32_t)encoder.getCount()) );
+	delay(100);
 }
+
+
+
 
 
 void vMainTaskAnimCylon(void *pvParameters){
