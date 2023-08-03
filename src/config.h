@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdint>
 
-/*
+/* #TODO OUT OF DATE 2023-08-03
+
 Radio    ESP32 module
 CE    -> 4
 CSN   -> 5
@@ -20,6 +21,8 @@ const static uint8_t PIN_RADIO_MISO = 19;
 const static uint8_t PIN_RADIO_SCK = 18;
 const int CLOCKPIN = 14;
 const int DATAPIN = 13;
+
+// maybe 27,28,29? feather
 const int buttonPin = 39;
 const uint8_t rotary1 = 34;
 const uint8_t rotary2 = 36;
