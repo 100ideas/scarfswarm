@@ -82,6 +82,7 @@ ESP32Encoder encoder;
 // timer and flag for example, not needed for encoders
 unsigned long encoderlastToggled;
 bool encoderPaused = false;
+int64_t encoderPosition = 0;
 
 struct __attribute__((packed)) RadioPacket // Note the packed attribute.
 {
@@ -93,8 +94,10 @@ struct __attribute__((packed)) RadioPacket // Note the packed attribute.
 NRFLite _radio;
 RadioPacket _radioData;
 
-const static uint8_t RADIO_ID = random();
-const static uint8_t SHARED_RADIO_ID = 42;
+const static uint8_t RADIO_ID = (uint8_t)random();
+// const static uint8_t SHARED_RADIO_ID = 42;
+const static uint8_t SHARED_RADIO_ID = 1; //from after litewarm master 3ea81e3f4b1211809066e6f9649927cf23428956
+
 
 // ezscb.com esp32 feather ~v1 SPI2/HSPI 
 const static uint8_t PIN_RADIO_CE = 27;
@@ -189,7 +192,7 @@ void fadeall() {
   for(int i = 0; i < NUM_LEDS; i++) { 
     leds[i].nscale8(250); 
   }
-  vTaskDelay(20 / portTICK_PERIOD_MS);
+  // vTaskDelay(100 / portTICK_PERIOD_MS);
 }
 
 
@@ -199,22 +202,26 @@ void fadeall() {
 // main
 void loop() {
   if(analog_read_task_handle != NULL){ // Make sure that the task actually exists
-    delay(10000);
+    delay(1000);
     vTaskDelete(analog_read_task_handle); // Delete task
     analog_read_task_handle = NULL; // prevent calling vTaskDelete on non-existing task
     Serial.println("vTaskDelete(analog_read_task_handle); // Delete task");
   }
 
   // #TODO refactor w/ Knob.h
-  if(!(millis() % 1000)) Serial.println("Encoder count = " + String((int32_t)encoder.getCount()) );
-	delay(100); // #TODO replace w x
-
+  // 50 hz check if encoder position changed
+  if(!(millis() % 20)){
+    if (encoderPosition != encoder.getCount()){
+      encoderPosition = encoder.getCount();
+      Serial.println("Encoder count = " + String((int32_t)encoderPosition));
+    }
+  };
 
   _radioData.OnTimeMillis = millis();
   // enter SEND mode AT MOST every ~1 sec or so 
   // (millis() will always not always be called w/ sub-ms frequency)
   // if (_radioData.OnTimeMillis % 1000 == 0)
-  if (_radioData.OnTimeMillis % 100 == 0)
+  if (_radioData.OnTimeMillis % 5000 == 0)
   {
       String msg = "<== SENT [";
       msg += RADIO_ID;
@@ -300,7 +307,7 @@ void vMainTaskAnimCylon(void *pvParameters){
     	fadeall();
       
       // Wait a little bit before we loop around and do it again
-    	vTaskDelay(30 / portTICK_PERIOD_MS);
+    	vTaskDelay(10 / portTICK_PERIOD_MS);
     }
     Serial.print("x");
 
