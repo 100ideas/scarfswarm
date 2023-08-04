@@ -1,16 +1,14 @@
+#include "SPI.h"
 #include <Arduino.h>
-
+#include <NRFLite.h>
 #include <ESP32Encoder.h>
-ESP32Encoder encoder;
-// timer and flag for example, not needed for encoders
-unsigned long encoderlastToggled;
-bool encoderPaused = false;
 
 
-// #define ARDUINO_RUNNING_CORE 1
 
-/* FastLED ESP32 Hardware SPI Driver
- * https://github.com/FastLED/FastLED/blob/master/src/platforms/esp/32/fastspi_esp32.h
+///////////////////////////////////////////////////////////////////////////////////////////
+// FastLED ESP32 Hardware SPI Driver
+
+/* https://github.com/FastLED/FastLED/blob/master/src/platforms/esp/32/fastspi_esp32.h
  *
  * This hardware SPI implementation can drive clocked LEDs from either the
  * VSPI or HSPI bus (aka SPI2 & SPI3). No support is provided for SPI1, because it is 
@@ -53,6 +51,11 @@ bool encoderPaused = false;
 #define FRAMES_PER_SECOND 60
 CRGB leds[NUM_LEDS];
 
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Task setup
 void vMainTaskAnimCylon( void *pvParameters );
 void vMainTaskAnalogRead( void *pvParameters );
 TaskHandle_t analog_read_task_handle; // You can (don't have to) use this to be able to manipulate a task from somewhere else.
@@ -60,21 +63,89 @@ TaskHandle_t analog_read_task_handle; // You can (don't have to) use this to be 
 
 
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Radio
+
+/* https://github.com/dparson55/NRFLite/blob/4e425d742ca8879d654a270c7c02c13440476e7a/examples/Basic_RX_ESP32/Basic_RX_ESP32.ino
+ * 
+ * Demonstrates simple RX operation with an ESP32.
+ * Any of the Basic_TX examples can be used as a transmitter.
+ * 
+ * ESP's require the use of '__attribute__((packed))' on the RadioPacket data structure
+ * to ensure the bytes within the structure are aligned properly in memory.
+ * 
+ * The ESP32 SPI library supports configurable SPI pins and NRFLite's mechanism to support this is shown.
+*/
+
+ESP32Encoder encoder;
+// timer and flag for example, not needed for encoders
+unsigned long encoderlastToggled;
+bool encoderPaused = false;
+
+struct __attribute__((packed)) RadioPacket // Note the packed attribute.
+{
+    uint8_t SenderId;
+    uint32_t OnTimeMillis;
+    uint32_t FailedTxCount;
+};
+
+NRFLite _radio;
+RadioPacket _radioData;
+
+const static uint8_t RADIO_ID = random();
+const static uint8_t SHARED_RADIO_ID = 42;
+
+// ezscb.com esp32 feather ~v1 SPI2/HSPI 
+const static uint8_t PIN_RADIO_CE = 27;
+const static uint8_t PIN_RADIO_CSN = 15;
+const static uint8_t PIN_RADIO_MOSI = 13;
+const static uint8_t PIN_RADIO_MISO = 12;
+const static uint8_t PIN_RADIO_SCK = 14;
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// setup
 void setup() {
   // Initialize serial communication at 115200 bits per second:
   Serial.begin(115200);
 
+
+  // FastLED
   // https://github.com/FastLED/FastLED/blob/master/src/FastLED.h#L246
   FastLED.addLeds<APA102, LED_spiMosi, LED_spiClk, BGR>(leds, NUM_LEDS);  // BGR ordering is typical
   FastLED.setBrightness(84);
   Serial.println("main.setup(): FastLED.addLeds() complete\n");
 
 
+
+  // nrf24 radio 
+  // https://nrf24.github.io/RF24/index.html#autotoc_md45
+  SPI.begin(PIN_RADIO_SCK, PIN_RADIO_MISO, PIN_RADIO_MOSI, PIN_RADIO_CSN);
+  // Indicate to NRFLite that it should not call SPI.begin() during initialization since it has already been done.
+  uint8_t callSpiBegin = 0;
+  // init radio w common ID so all are in "broadcast" mode
+  if (!_radio.init(SHARED_RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE2MBPS, 100, callSpiBegin))
+  {
+      Serial.println("Cannot communicate with radio");
+      // while (1); // Wait here forever.
+  }
+  Serial.println("main.setup(): _radio.init() complete");
+  _radioData.SenderId = RADIO_ID;
+  _radioData.FailedTxCount = 0;
+  // sanity check delay - allows reprogramming if accidently blowing power w/leds
+  delay(1000);
+
+
+
+  // Rotary Encoder Knob
   // https://github.com/madhephaestus/ESP32Encoder/blob/master/examples/Encoder/Encoder.ino
   ESP32Encoder::useInternalWeakPullResistors=UP;
 	// use pin 19 and 18 for the first encoder
 	encoder.attachHalfQuad(17, 16);
-  // set starting count value after attaching
+  // set starting count value after attaching 
 	encoder.setCount(37);
 	// clear the encoder's raw count and set the tracked count to zero
 	// encoder.clearCount();
@@ -84,6 +155,7 @@ void setup() {
 
 
 
+  // Task creation
   // Set up two tasks to run independently.
   xTaskCreatePinnedToCore(
     vMainTaskAnimCylon
@@ -111,6 +183,7 @@ void setup() {
   // Now the task scheduler, which takes over control of scheduling individual tasks, is automatically started.
 }
 
+
 // cheesy cylon example - delay() is bad probably
 void fadeall() { 
   for(int i = 0; i < NUM_LEDS; i++) { 
@@ -120,6 +193,10 @@ void fadeall() {
 }
 
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// main
 void loop() {
   if(analog_read_task_handle != NULL){ // Make sure that the task actually exists
     delay(10000);
@@ -128,15 +205,64 @@ void loop() {
     Serial.println("vTaskDelete(analog_read_task_handle); // Delete task");
   }
 
-  // Loop and read the count
-	Serial.println("Encoder count = " + String((int32_t)encoder.getCount()) );
-	delay(100);
+  // #TODO refactor w/ Knob.h
+  if(!(millis() % 1000)) Serial.println("Encoder count = " + String((int32_t)encoder.getCount()) );
+	delay(100); // #TODO replace w x
+
+
+  _radioData.OnTimeMillis = millis();
+  // enter SEND mode AT MOST every ~1 sec or so 
+  // (millis() will always not always be called w/ sub-ms frequency)
+  // if (_radioData.OnTimeMillis % 1000 == 0)
+  if (_radioData.OnTimeMillis % 100 == 0)
+  {
+      String msg = "<== SENT [";
+      msg += RADIO_ID;
+      msg += "=>";
+      msg += SHARED_RADIO_ID;
+      msg += "]: ";
+      msg += _radioData.OnTimeMillis;
+      msg += " ms (";
+      msg += _radioData.FailedTxCount;
+      msg += " Failed TX)";
+      Serial.print(msg);
+      
+      // liteswarm#master/Radio.h#72
+      // _radio.send(SHARED_RADIO_ID, &_outboundRadioPacket, sizeof(_outboundRadioPacket), NRFLite::NO_ACK);
+      if (_radio.send(SHARED_RADIO_ID, &_radioData, sizeof(_radioData)), NRFLite::NO_ACK)
+      {
+          Serial.println("...Success");
+      }
+      else
+      {
+          Serial.println("...Failed");
+          _radioData.FailedTxCount++;
+      }
+  }
+  // SIDE-EFFECT: hasData() leaves radio in receive mode
+  while(_radio.hasData())
+  {
+      _radio.readData(&_radioData);
+      
+      String msg = "==> RCVD [  ";
+      msg += _radioData.SenderId;
+      msg += "=>";
+      msg += SHARED_RADIO_ID;
+      msg += "]: ";
+      msg += _radioData.OnTimeMillis;
+      msg += " ms (";
+      msg += _radioData.FailedTxCount;
+      msg += " Failed TX)";
+
+      Serial.println(msg);
+  }
 }
 
 
 
 
-
+///////////////////////////////////////////////////////////////////////////////////////////
+// Tasks
 void vMainTaskAnimCylon(void *pvParameters){
   /* broken
   CRGB leds = *((CRGB*)pvParameters);
