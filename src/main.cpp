@@ -71,7 +71,7 @@ struct __attribute__((packed)) RadioPacket_NRFLiteExample // Note the packed att
     uint32_t FailedTxCount;
 };
 
-struct __attribute__((packed)) RadioPacket_old   // Any packet up to 32 bytes can be sent.
+struct __attribute__((packed)) RadioPacket  // Any packet up to 32 bytes can be sent.
 {                                            //  index[width]:bytes so far - 256 bits max packet size
   uint8_t  SHARED_SECRET;                    //  0[8]:1
   uint8_t  senderId;                         //  8[8]:1
