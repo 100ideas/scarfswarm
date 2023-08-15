@@ -1,3 +1,49 @@
+# 2023-08-08
+
+
+goto definition in vscode new window: `option` + `command` + `left click`
+https://stackoverflow.com/q/54131613/957984
+
+`cmd` + `t` while hovering over function: opens dialogue to select which file to open (in same window)
+
+## TODO
+- [ ] write pinouts on new esp32-devkit1 pinout diagram
+- [ ] breadboard up working devkit1 w modules
+- [ ] verify it works
+- [ ] make 4 with perfboard (using headers) ?
+- [ ] investigate struct bug w old teensys 
+  - [ ] potentially try to revive old code and reprogram teensy
+
+
+## BUG struct mismatch bw teensy and esp32 radio packets
+log indicates esp32 radio always receives `42` for the `animationId`. `42` is the `SHARED_SECRET` of the old teensy codebase. therefore, (I think) the esp32 radio is expecting a different byte ordering of the incoming packet, little endian maybe, and so `SHARED_SECRET` ends up being set as `animationId`. Also, the `encoderPosition` is a huge weird number, since the boundary is interpreted incorrectly between the uint8 and uint32
+
+hacked in a reversed order of the fields in the `RadioPacket` struct and actually got correct encoderposition numbers (looked like), but animationID was off 
+
+
+read this http://mjfrazer.org/mjfrazer/bitfields/
+
+do more research https://github.com/search?q=repo%3AnRF24%2FRF24+endian&type=issues
+
+the following struct organization on esp32 (not diff than old teensy order) seems to allow esp32 to interpret rotary correctly. Note that most animations on teensy lock knob position between 0 and 255 or 300. so unsigned is ok.
+```C
+struct __attribute__((packed)) RadioPacket   // Any packet up to 32 bytes can be sent.
+{                                            //  index[width]:bytes so far - 256 bits max packet size
+  int32_t encoderPosition;                  //  16[32]:4
+  uint8_t  animationId;                      //  48[8]:1
+  uint8_t  senderId;                         //  8[8]:1
+  uint8_t  SHARED_SECRET;                    //  0[8]:1
+};
+```
+
+
+## nrf24 notes
+why to use capacitor
+https://ncrmnt.org/2021/01/03/nrf24l01-fixing-the-magic-finger-problem/
+
+
+
+
 # 2023-08-03 FastLED notes
 
 
