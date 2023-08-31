@@ -12,7 +12,7 @@ SCK   -> 18
 IRQ   -> No connection
 VCC   -> No more than 3.6 volts
 GND   -> GND
-*/w
+*/
 
 const static uint8_t PIN_RADIO_CE = 4;
 const static uint8_t PIN_RADIO_CSN = 5;
