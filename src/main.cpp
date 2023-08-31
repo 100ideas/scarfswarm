@@ -1,10 +1,11 @@
 #include "SPI.h"
 #include <Arduino.h>
 #include <NRFLite.h>
-#include <ESP32Encoder.h>
-#include <Bounce2.h>
+// #include <ESP32Encoder.h>
+// #include <Bounce2.h>
+#include "MyKnob.h"
 
-
+MyKnob knob;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // init FastLED
@@ -51,9 +52,9 @@
 #define FRAMES_PER_SECOND 60
 CRGB leds[NUMPIXELS];
 
-#define buttonPin 21
-#define rotary1 17
-#define rotary2 16
+// #define buttonPin 21
+// #define rotary1 17
+// #define rotary2 16
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -87,15 +88,6 @@ struct __attribute__((packed)) RadioPacket  // Any packet up to 32 bytes can be 
                                              // 255[0]:0
 };
 
-// experimenting w packet structure to deal w teensy ordering bug TODO BUG
-// struct __attribute__((packed)) RadioPacket
-// {
-//   int32_t encoderPosition;
-//   uint8_t  animationId;
-//   uint8_t  senderId;
-//   uint8_t  SHARED_SECRET;
-// };
-
 
 NRFLite _radio;
 RadioPacket _radioData;
@@ -117,14 +109,10 @@ const static uint8_t SHARED_SECRET = 42;  // bikelight scarves use this & radio_
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // init rotary encoder
-ESP32Encoder encoder;
-// timer and flag for example, not needed for encoders
-unsigned long encoderlastToggled = 0;
-bool encoderPaused = false;
-uint32_t encoderPosition = 0;
+// ESP32Encoder encoder;
+// uint32_t encoderPosition = 0;
 
-// Bounce button = Bounce();
-Bounce2::Button button = Bounce2::Button();
+// Bounce2::Button button_debouncer = Bounce2::Button();
 
 
 
@@ -133,6 +121,8 @@ Bounce2::Button button = Bounce2::Button();
 void setup() {
     // Initialize serial communication at 115200 bits per second:
     Serial.begin(115200);
+
+    knob.setup();
 
 
     // FastLED
@@ -167,19 +157,20 @@ void setup() {
 
 
 
+    // CALL MyKnob.Setup()
+
     // Rotary Encoder Knob
     // https://github.com/madhephaestus/ESP32Encoder/blob/master/examples/Encoder/Encoder.ino
-    ESP32Encoder::useInternalWeakPullResistors=UP;
-    // use pin 19 and 18 for the first encoder
-    encoder.attachHalfQuad(17, 16);
-    // clear the encoder's raw count and set the tracked count to zero
-    encoder.clearCount();
-    Serial.println("Encoder Start = " + String((int32_t)encoder.getCount()));
-    // set the lastToggle
-    encoderlastToggled = millis();
+    // ESP32Encoder::useInternalWeakPullResistors=UP;
+    // // use pin 19 and 18 for the first encoder
+    // encoder.attachHalfQuad(17, 16);
+    // // clear the encoder's raw count and set the tracked count to zero
+    // encoder.clearCount();
+    // Serial.println("Encoder Start = " + String((int32_t)encoder.getCount()));
 
-      button.attach(buttonPin, INPUT_PULLUP);
-      button.interval(25);
+
+    // button_debouncer.attach(buttonPin, INPUT_PULLUP);
+    // button_debouncer.interval(25);
 
 
 
@@ -206,15 +197,12 @@ void blink(){  // Turn the LED on, then pause
 uint32_t now = 0;
 bool localUpdate;
 bool weBlinkin = true;
+int animIndex = 1;
 
 void loop() {
 
-  button.update();
-  if ( button.pressed() ) {
-        Serial.println("\n####### BUTTON PRESS\n");
-  }
-
   FastLED.show();
+  knob.check(&animIndex);
 
   // tracking updates in superloop (not concurrent friendly!!!)
   localUpdate = false;
@@ -229,17 +217,17 @@ void loop() {
   // #TODO refactor w/ Knob.h
   // currently encoder.getCount() can return negative and cause encoderPosition to roll over
   // 50 hz check if encoder position changed
-  if(!(now % 20)){
-    if (encoderPosition != encoder.getCount()){
-      // TODO caution, encoder getCount() may return SIGNED int64?
-      // casting incorrectly (int32_t) caused lock up
-      encoderPosition = (uint32_t)encoder.getCount(); 
-      _radioData.encoderPosition = encoderPosition;
-      localUpdate = true;
-      Serial.println("\nEncoder count = " + String(encoderPosition) + "\n");
-      // Serial.println("2. Encoder count = " + String((int32_t)encoder.getCount()));
-    }
-  };
+  // if(!(now % 20)){
+  //   if (encoderPosition != encoder.getCount()){
+  //     // TODO caution, encoder getCount() may return SIGNED int64?
+  //     // casting incorrectly (int32_t) caused lock up
+  //     encoderPosition = (uint32_t)encoder.getCount(); 
+  //     _radioData.encoderPosition = encoderPosition;
+  //     localUpdate = true;
+  //     Serial.println("\nEncoder count = " + String(encoderPosition) + "\n");
+  //     // Serial.println("2. Encoder count = " + String((int32_t)encoder.getCount()));
+  //   }
+  // };
 
   // enter SEND mode AT MOST every ~5 sec or so (currently 5 sec heartbeat)
   if (now % 5000 == 0 || localUpdate)
