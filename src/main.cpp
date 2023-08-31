@@ -46,9 +46,9 @@
 // #TODO want to find a clean way to pull these defs from where they are already defined in fastspi_esp32.h
 #define LED_spiClk 18
 #define LED_spiMosi 23
-#define NUM_LEDS 60
+#define NUMPIXELS 60
 #define FRAMES_PER_SECOND 60
-CRGB leds[NUM_LEDS];
+CRGB leds[NUMPIXELS];
 
 
 
@@ -76,8 +76,8 @@ struct __attribute__((packed)) RadioPacket  // Any packet up to 32 bytes can be 
   uint8_t  SHARED_SECRET;                    //  0[8]:1
   uint8_t  senderId;                         //  8[8]:1
   // TODO shouldn't encoderPosition be signed int16?
-  // uint32_t encoderPosition;                  //  16[32]:4
-  int32_t encoderPosition;                  //  16[32]:4
+  uint32_t encoderPosition;                  //  16[32]:4
+  // int32_t encoderPosition;                  //  16[32]:4
   uint8_t  animationId;                      //  48[8]:1
   // uint32_t keyframe;                      //  56[?]:1-25
                                              // 255[0]:0
@@ -117,16 +117,7 @@ ESP32Encoder encoder;
 // timer and flag for example, not needed for encoders
 unsigned long encoderlastToggled = 0;
 bool encoderPaused = false;
-int32_t encoderPosition = 0;
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// init Tasks
-void vMainTaskAnimCylon( void *pvParameters );
-void vMainTaskAnalogRead( void *pvParameters );
-TaskHandle_t analog_read_task_handle; // You can (don't have to) use this to be able to manipulate a task from somewhere else.
-#define ANALOG_INPUT_PIN 39 // Vbatt (A3 on feather)
+uint32_t encoderPosition = 0;
 
 
 
@@ -139,9 +130,11 @@ void setup() {
 
     // FastLED
     // https://github.com/FastLED/FastLED/blob/master/src/FastLED.h#L246
-    FastLED.addLeds<APA102, LED_spiMosi, LED_spiClk, BGR>(leds, NUM_LEDS);  // BGR ordering is typical
+    FastLED.addLeds<APA102, LED_spiMosi, LED_spiClk, BGR>(leds, NUMPIXELS);  // BGR ordering is typical
     FastLED.setBrightness(84);
     Serial.println("main.setup(): FastLED.addLeds() complete\n");
+    fill_solid(leds, NUMPIXELS, CRGB::Green);
+    FastLED.show();
 
 
 
@@ -180,43 +173,20 @@ void setup() {
 
 
 
-    // Task creation
-    // Set up two tasks to run independently.
-    xTaskCreatePinnedToCore(
-      vMainTaskAnimCylon
-      ,  "Task AnimationCylon" // A name just for humans
-      // ,  2048        // The stack size can be checked by calling `uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);`
-      ,  4096
-      // ,  (void*) &leds // Task parameter which can modify the task behavior. This must be passed as pointer to void.
-      ,  NULL
-      ,  2  // Priority
-      ,  NULL // Task handle is not used here - simply pass NULL
-      ,  ARDUINO_RUNNING_CORE // core for task
-      );
-
-    // This variant of task creation can also specify on which core it will be run (only relevant for multi-core ESPs)
-    xTaskCreate(
-      vMainTaskAnalogRead
-      ,  "Analog Read"
-      ,  2048  // Stack size
-      ,  NULL  // When no parameter is used, simply pass NULL
-      ,  1  // Priority
-      ,  &analog_read_task_handle // With task handle we will be able to manipulate with this task.
-      );
-
-    Serial.printf("Basic Multi Threading Arduino Example\n");
+    Serial.printf("finished setup\n");
     // Now the task scheduler, which takes over control of scheduling individual tasks, is automatically started.
 }
 
 
-// cheesy cylon example - delay() is bad probably
-void fadeall() { 
-  for(int i = 0; i < NUM_LEDS; i++) { 
-    leds[i].nscale8(250); 
-  }
-  // vTaskDelay(100 / portTICK_PERIOD_MS);
-}
-
+void blink(){  // Turn the LED on, then pause
+  leds[0] = CRGB::Red;
+  FastLED.show();
+  delay(500);
+  // Now turn the LED off, then pause
+  leds[0] = CRGB::Black;
+  FastLED.show();
+  delay(500);
+};
 
 
 
@@ -225,33 +195,38 @@ void fadeall() {
 // TODO refactor loop() so millis() inner-loop state not needed - ugly
 uint32_t now = 0;
 bool localUpdate;
+bool weBlinkin = true;
 
 void loop() {
+
+  FastLED.show();
+  
   // tracking updates in superloop (not concurrent friendly!!!)
   localUpdate = false;
   // (millis() will always not always be called w/ sub-ms frequency)
   now = millis();
+  
+  // if(weBlinkin){
+  //   blink();
+  // };
 
-  if(analog_read_task_handle != NULL){ // Make sure that the task actually exists
-    delay(1000);
-    vTaskDelete(analog_read_task_handle); // Delete task
-    analog_read_task_handle = NULL; // prevent calling vTaskDelete on non-existing task
-    Serial.println("vTaskDelete(analog_read_task_handle); // Delete task");
-  }
 
   // #TODO refactor w/ Knob.h
+  // currently encoder.getCount() can return negative and cause encoderPosition to roll over
   // 50 hz check if encoder position changed
   if(!(now % 20)){
     if (encoderPosition != encoder.getCount()){
-      encoderPosition = (int32_t)encoder.getCount(); // TODO caution, encoder getCount() may return SIGNED int64?
+      // TODO caution, encoder getCount() may return SIGNED int64?
+      // casting incorrectly (int32_t) caused lock up
+      encoderPosition = (uint32_t)encoder.getCount(); 
       _radioData.encoderPosition = encoderPosition;
       localUpdate = true;
-      Serial.println("1. Encoder count = " + String(encoderPosition));
-      Serial.println("2. Encoder count = " + String((int32_t)encoder.getCount()));
+      Serial.println("\nEncoder count = " + String(encoderPosition) + "\n");
+      // Serial.println("2. Encoder count = " + String((int32_t)encoder.getCount()));
     }
   };
 
-  // enter SEND mode AT MOST every ~1 sec or so (currently 5 sec heartbeat)
+  // enter SEND mode AT MOST every ~5 sec or so (currently 5 sec heartbeat)
   if (now % 5000 == 0 || localUpdate)
   {
       String msg = "<== SENT [";
@@ -261,19 +236,19 @@ void loop() {
       msg += "]: ";
       msg += _radioData.animationId;
       msg += " -- ";
-      msg += _radioData.encoderPosition; // TODO bad bug, deserializing into number like 1168572416
+      msg += _radioData.encoderPosition; 
       Serial.println(msg);
 
-      Serial.print(" encoder.getCount(): ");
-      Serial.println(encoder.getCount());
-      Serial.print(" (int32_t)encoder.getCount(): ");
-      Serial.println((int32_t)encoder.getCount());
+      // Serial.print(" encoder.getCount(): ");
+      // Serial.println(encoder.getCount());
+      // Serial.print(" (int32_t)encoder.getCount(): ");
+      // Serial.println((int32_t)encoder.getCount());
       
       // liteswarm#master/Radio.h#72
       // _radio.send(SHARED_RADIO_ID, &_outboundRadioPacket, sizeof(_outboundRadioPacket), NRFLite::NO_ACK);
       if (_radio.send(SHARED_RADIO_ID, &_radioData, sizeof(_radioData)), NRFLite::NO_ACK)
       {
-          Serial.println("...Success");
+          // Serial.println("...Success");
       }
       else
       {
@@ -299,98 +274,13 @@ void loop() {
       msg += " Failed TX)";
 
       Serial.println(msg);
-  }
-}
 
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// Tasks
-void vMainTaskAnimCylon(void *pvParameters){
-  /* broken
-  CRGB leds = *((CRGB*)pvParameters);
-  */
-
-  int count = 0;
-  int uxHighWaterMark;
-  static uint8_t hue = 0;
-
-  for (;;){
-    // First slide the led in one direction
-    for(int i = 0; i < NUM_LEDS; i++) {
-      // Set the i'th led to red 
-      leds[i] = CHSV(hue++, 255, 255);
-      // Show the leds
-      FastLED.show(); 
-      // now that we've shown the leds, reset the i'th led to black
-      leds[i] = CRGB::Black;
-      fadeall();
-      
-      // arduino-esp32 has FreeRTOS configured to have a tick-rate of 1000Hz and portTICK_PERIOD_MS
-      // refers to how many milliseconds the period between each ticks is, ie. 1ms.
-      vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-    // Serial.print("x");
-
-    // Now go in the other direction.  
-    for(int i = (NUM_LEDS)-1; i >= 0; i--) {
-    	// Set the i'th led to red 
-    	leds[i] = CHSV(hue++, 255, 255);
-    	// Show the leds
-    	FastLED.show();
-    	// now that we've shown the leds, reset the i'th led to black
-    	leds[i] = CRGB::Black;
-    	fadeall();
-      
-      // Wait a little bit before we loop around and do it again
-    	vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-    // Serial.print("x");
-
-    // if(!(count % 20)) {
-    if(!(count % 20)) {
-      uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-      Serial.printf("\nvMainTaskAnimCylon: %i, ", count);
-      Serial.println(uxHighWaterMark);
-    }
-  count++;
-  }
-
-}
-
-
-void vMainTaskAnalogRead(void *pvParameters){  // This is a task.
-  (void) pvParameters;
-  int count = 0;
-  
-  Serial.println("started vMainTaskAnalogRead");
-  // Check if the given analog pin is usable - if not - delete this task
-  if(!adcAttachPin(ANALOG_INPUT_PIN)){
-    Serial.printf("TaskAnalogRead cannot work because the given pin %d cannot be used for ADC - the task will delete itself.\n", ANALOG_INPUT_PIN);
-    analog_read_task_handle = NULL; // Prevent calling vTaskDelete on non-existing task
-    vTaskDelete(NULL); // Delete this task
-  }
-  
-/*
-  AnalogReadSerial
-  Reads an analog input on pin A3, prints the result to the serial monitor.
-  Graphical representation is available using serial plotter (Tools > Serial Plotter menu)
-  Attach the center pin of a potentiometer to pin A3, and the outside pins to +5V and ground.
-
-  This example code is in the public domain.
-*/
-
-  for (;;){
-    // read the input on analog pin:
-    int sensorValue = analogRead(ANALOG_INPUT_PIN);
-    // delay(100); // 100ms delay
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-    count++;
-    Serial.print("vMainTaskAnalogRead: ");
-    Serial.print(count);
-    Serial.print(" - ");
-    Serial.println(sensorValue);
-    // if(count >= 10) vTaskDelete(NULL);
+      if(_radioData.encoderPosition < 100){
+        weBlinkin = false;
+        fill_solid(leds, NUMPIXELS, CRGB::Red);
+      } else {
+        weBlinkin = true;
+        fill_solid(leds, NUMPIXELS, CRGB::White);
+      };
   }
 }
