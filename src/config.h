@@ -14,15 +14,18 @@ VCC   -> No more than 3.6 volts
 GND   -> GND
 */
 
-const static uint8_t PIN_RADIO_CE = 4;
-const static uint8_t PIN_RADIO_CSN = 5;
-const static uint8_t PIN_RADIO_MOSI = 23;
-const static uint8_t PIN_RADIO_MISO = 19;
-const static uint8_t PIN_RADIO_SCK = 18;
-const int CLOCKPIN = 14;
-const int DATAPIN = 13;
+#define NUMPIXELS 60
+#define FRAMES_PER_SECOND 60
+#define LED_spiClk 18
+#define LED_spiMosi 23
+
+// #define PIN_RADIO_CE 4
+// #define PIN_RADIO_CSN 5
+// #define PIN_RADIO_MOSI 23
+// #define PIN_RADIO_MISO 19
+// #define PIN_RADIO_SCK 18
 
 // maybe 16,17,xx? feather
-const int buttonPin = 39;
-const uint8_t rotary1 = 34;
-const uint8_t rotary2 = 36;
+#define buttonPin 39
+#define rotary1 34
+#define rotary2 36

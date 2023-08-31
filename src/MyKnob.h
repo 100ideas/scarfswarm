@@ -1,4 +1,5 @@
-#include <Arduino.h>
+#include "config.h"
+// #include <Arduino.h>
 // #include <Encoder.h>
 #include <ESP32Encoder.h>
 #include <Bounce2.h>
@@ -76,15 +77,17 @@ public:
     {
         button_debouncer.update();
         checkButton(_animationIndex);
+        checkRotary();
         // 50 hz guard to check encoder position changed
-        if(!(millis() % 20)){
-          checkRotary();
-        }
+        // if(!(millis() % 20)){
+        //   checkRotary();
+        // }
     }
 
     // Set these variables once so they don't need to be set repeatedly
     void setDefaults(int position_, int start_, int finish_, bool loopRotary_ = false)
     {
+        Serial.println("MyKnob setDefaults");
         position = position_;
         encoder_knob.setCount(position);
         start = start_;

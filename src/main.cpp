@@ -1,3 +1,4 @@
+#include "config.h"
 #include "SPI.h"
 #include <Arduino.h>
 #include <NRFLite.h>
@@ -46,15 +47,66 @@ MyKnob knob;
  *  static uint8_t spiCs = 5;
  */
 // #TODO want to find a clean way to pull these defs from where they are already defined in fastspi_esp32.h
-#define LED_spiClk 18
-#define LED_spiMosi 23
-#define NUMPIXELS 60
-#define FRAMES_PER_SECOND 60
+// #define LED_spiClk 18
+// #define LED_spiMosi 23
+// #define NUMPIXELS 60
+// #define FRAMES_PER_SECOND 60
 CRGB leds[NUMPIXELS];
 
 // #define buttonPin 21
 // #define rotary1 17
 // #define rotary2 16
+
+
+#include "animations/DiamondNecklace.h"
+
+DiamondNecklace diamond_necklace(knob, leds);
+
+Animation *current_animation = &diamond_necklace;
+
+int animation_index = 0;
+int previous_animation_index = -1;
+void playAnimation()
+{
+  if (animation_index != previous_animation_index)
+  {
+    // Serial.print("Coming from ");
+    // Serial.print(previous_animation_index);
+    // Serial.print(" to ");
+    // Serial.println(animation_index);
+    if (animation_index > 5)
+      // animation_index = 0;
+      animation_index = 4;
+    // BUG CAUTION
+    // never follow one animation function immediately with itself in the the
+    // next case
+    switch (animation_index)
+    {
+    case 0:
+      // current_animation = &color_chooser;
+      break;
+    case 1:
+      // current_animation = &fuck_my_eyes;
+      break;
+    case 2:
+      // current_animation = &race;
+      break;
+    case 3:
+      // current_animation = &crossfade;
+      break;
+    case 4:
+      current_animation = &diamond_necklace;
+      break;
+    case 5:
+      // current_animation = &find_my_bike;
+      break;
+    }
+    current_animation->setup();
+    previous_animation_index = animation_index;
+  }
+  current_animation->run();
+}
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -122,16 +174,15 @@ void setup() {
     // Initialize serial communication at 115200 bits per second:
     Serial.begin(115200);
 
-    knob.setup();
-
 
     // FastLED
     // https://github.com/FastLED/FastLED/blob/master/src/FastLED.h#L246
     FastLED.addLeds<APA102, LED_spiMosi, LED_spiClk, BGR>(leds, NUMPIXELS);  // BGR ordering is typical
-    FastLED.setBrightness(84);
+    // FastLED.setBrightness(84);
     Serial.println("main.setup(): FastLED.addLeds() complete\n");
     fill_solid(leds, NUMPIXELS, CRGB::Green);
     FastLED.show();
+    delay(1000);
 
 
 
@@ -153,11 +204,10 @@ void setup() {
     _radioData.animationId = 255;     // 255 for now to indicate init but invalid
     _radioDataExample.FailedTxCount = 0;  // TODO remove
     // sanity check delay - allows reprogramming if accidently blowing power w/leds
-    delay(1000);
-
-
+    
 
     // CALL MyKnob.Setup()
+    knob.setup();
 
     // Rotary Encoder Knob
     // https://github.com/madhephaestus/ESP32Encoder/blob/master/examples/Encoder/Encoder.ino
@@ -179,17 +229,6 @@ void setup() {
 }
 
 
-void blink(){  // Turn the LED on, then pause
-  leds[0] = CRGB::Red;
-  FastLED.show();
-  delay(500);
-  // Now turn the LED off, then pause
-  leds[0] = CRGB::Black;
-  FastLED.show();
-  delay(500);
-};
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // main loop
@@ -197,12 +236,8 @@ void blink(){  // Turn the LED on, then pause
 uint32_t now = 0;
 bool localUpdate;
 bool weBlinkin = true;
-int animIndex = 1;
 
 void loop() {
-
-  FastLED.show();
-  knob.check(&animIndex);
 
   // tracking updates in superloop (not concurrent friendly!!!)
   localUpdate = false;
@@ -212,6 +247,11 @@ void loop() {
   // if(weBlinkin){
   //   blink();
   // };
+
+  if(!(now % 2000)){
+    Serial.print("\nEncoder count = ");
+    Serial.println(knob.get());
+  }
 
 
   // #TODO refactor w/ Knob.h
@@ -278,12 +318,14 @@ void loop() {
 
       Serial.println(msg);
 
-      if(_radioData.encoderPosition < 100){
-        weBlinkin = false;
-        fill_solid(leds, NUMPIXELS, CRGB::Red);
-      } else {
-        weBlinkin = true;
-        fill_solid(leds, NUMPIXELS, CRGB::White);
-      };
+      // if(_radioData.encoderPosition < 100){
+      //   weBlinkin = false;
+      //   fill_solid(leds, NUMPIXELS, CRGB::Red);
+      // } else {
+      //   weBlinkin = true;
+      //   fill_solid(leds, NUMPIXELS, CRGB::White);
+      // };
   }
+  knob.check(&animation_index);
+  playAnimation();
 }
