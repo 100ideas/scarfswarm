@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <NRFLite.h>
 #include <ESP32Encoder.h>
+#include <Bounce2.h>
 
 
 
@@ -50,6 +51,9 @@
 #define FRAMES_PER_SECOND 60
 CRGB leds[NUMPIXELS];
 
+#define buttonPin 21
+#define rotary1 17
+#define rotary2 16
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -119,6 +123,9 @@ unsigned long encoderlastToggled = 0;
 bool encoderPaused = false;
 uint32_t encoderPosition = 0;
 
+// Bounce button = Bounce();
+Bounce2::Button button = Bounce2::Button();
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -171,6 +178,9 @@ void setup() {
     // set the lastToggle
     encoderlastToggled = millis();
 
+      button.attach(buttonPin, INPUT_PULLUP);
+      button.interval(25);
+
 
 
     Serial.printf("finished setup\n");
@@ -199,8 +209,13 @@ bool weBlinkin = true;
 
 void loop() {
 
+  button.update();
+  if ( button.pressed() ) {
+        Serial.println("\n####### BUTTON PRESS\n");
+  }
+
   FastLED.show();
-  
+
   // tracking updates in superloop (not concurrent friendly!!!)
   localUpdate = false;
   // (millis() will always not always be called w/ sub-ms frequency)
