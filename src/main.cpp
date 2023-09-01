@@ -185,6 +185,7 @@ void setup() {
     // FastLED.setBrightness(84);
     Serial.println("main.setup(): FastLED.addLeds() complete\n");
     fill_solid(leds, NUMPIXELS, CRGB::Green);
+    // fill_solid(leds, NUMPIXELS, CRGB::Blue);
     FastLED.show();
     delay(1000);
 
@@ -239,6 +240,7 @@ void setup() {
 // TODO refactor loop() so millis() inner-loop state not needed - ugly
 uint32_t now = 0;
 bool localUpdate = false;
+bool remoteUpdate = false;
 
 void loop() {
   // tracking updates in superloop (not concurrent friendly!!!)
@@ -253,7 +255,7 @@ void loop() {
 
 
   // enter SEND mode AT MOST every ~5 sec or so (currently 5 sec heartbeat)
-  if (now % 3000 == 0 || localUpdate)
+  if (now % 5000 == 0 || localUpdate)
   {
       _radioData.animationId = animation_index;
       _radioData.encoderPosition = knob.get();

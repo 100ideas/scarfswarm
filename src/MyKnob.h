@@ -42,14 +42,15 @@ private:
         }
         position = newPos;
         (*_localUpdate) = true;
-        // Serial.println("\n(localupdate) Encoder count = " + String(position) + "\n");
+        Serial.println("\n(localupdate) Encoder count = " + String(position) + "\n");
     }
 
-    void checkButton(int *_aiIndex)
+    void checkButton(int *_aiIndex, bool *_localUpdate)
     {
       if ( button_debouncer.pressed() ) {
         Serial.println("\n####### BUTTON PRESS\n");
         (*_aiIndex)++;
+        (*_localUpdate) = true;
       }
     }
 
@@ -71,6 +72,9 @@ public:
     }
     void set(int _position)
     {
+        // very important - set used by incoming packet to update state
+        // by setting knob AND class variable to incoming value, short-
+        // circuits localUpdate logic (which leads to constant back-forth radio updates)
         encoder_knob.setCount(_position);
         position = _position;
     }
@@ -83,7 +87,7 @@ public:
     void check(int *_animationIndex, bool *_localUpdate)
     {
         button_debouncer.update();
-        checkButton(_animationIndex);
+        checkButton(_animationIndex, _localUpdate);
         checkRotary(_localUpdate);
         // 50 hz guard to check encoder position changed
         // if(!(millis() % 20)){
