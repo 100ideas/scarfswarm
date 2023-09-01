@@ -63,7 +63,7 @@ public:
       encoder_knob.attachHalfQuad(17, 16);
       // clear the encoder's raw count and set the tracked count to zero
       encoder_knob.clearCount();
-      encoder_knob.setCount(128); // init in middle 0-255
+      // encoder_knob.setCount(128); // init in middle 0-255
       Serial.println("Encoder Start = " + String((uint32_t)encoder_knob.getCount()));
 
       button_debouncer.attach(21, INPUT_PULLUP);
