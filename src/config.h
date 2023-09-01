@@ -14,7 +14,8 @@ VCC   -> No more than 3.6 volts
 GND   -> GND
 */
 
-#define NUMPIXELS 60
+// #define NUMPIXELS 60
+#define NUMPIXELS 75
 #define FRAMES_PER_SECOND 60
 #define LED_spiClk 18
 #define LED_spiMosi 23

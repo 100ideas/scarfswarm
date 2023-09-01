@@ -57,20 +57,12 @@ CRGB leds[NUMPIXELS];
  * 
  * The ESP32 SPI library supports configurable SPI pins and NRFLite's mechanism to support this is shown.
 */
-struct __attribute__((packed)) RadioPacket_NRFLiteExample // Note the packed attribute.
-{
-    uint8_t  SenderId;
-    uint32_t OnTimeMillis;
-    uint32_t FailedTxCount;
-};
 
 struct __attribute__((packed)) RadioPacket  // Any packet up to 32 bytes can be sent.
 {                                            //  index[width]:bytes so far - 256 bits max packet size
   uint8_t  SHARED_SECRET;                    //  0[8]:1
   uint8_t  senderId;                         //  8[8]:1
-  // TODO shouldn't encoderPosition be signed int16?
   uint32_t encoderPosition;                  //  16[32]:4
-  // int32_t encoderPosition;                  //  16[32]:4
   uint8_t  animationId;                      //  48[8]:1
   // uint32_t keyframe;                      //  56[?]:1-25
                                              // 255[0]:0
@@ -79,7 +71,6 @@ struct __attribute__((packed)) RadioPacket  // Any packet up to 32 bytes can be 
 
 NRFLite _radio;
 RadioPacket _radioData;
-RadioPacket_NRFLiteExample _radioDataExample;
 
 // ezscb.com esp32 feather ~v1 SPI2/HSPI 
 const static uint8_t PIN_RADIO_CE = 27;
@@ -88,70 +79,78 @@ const static uint8_t PIN_RADIO_MOSI = 13;
 const static uint8_t PIN_RADIO_MISO = 12;
 const static uint8_t PIN_RADIO_SCK = 14;
 // PIN_RADIO_IRQ = 33
-
 const static uint8_t RADIO_ID = (uint8_t)random();
 const static uint8_t SHARED_RADIO_ID = 1; // from after litewarm master 3ea81e3f4b1211809066e6f9649927cf23428956
 const static uint8_t SHARED_SECRET = 42;  // bikelight scarves use this & radio_id = 1
 
 
 
-#include "animations/DiamondNecklace.h"
-#include "animations/Crossfade.h"
-#include "animations/FuckMyEyes.h"
 #include "animations/ColorChooser.h"
-#include "animations/FindMyBike.h"
+#include "animations/Crossfade.h"
+#include "animations/DiamondNecklace.h"
+#include "animations/Dimmer.h"
+#include "animations/FuckMyEyes.h"
 #include "animations/Race.h"
+#include "animations/Rainbow.h"
 #include "animations/Stars.h"
+#include "animations/Stripes.h"
 
-
-ColorChooser color_chooser(knob, leds);
+// Load animations...
 Crossfade crossfade(knob, leds);
-DiamondNecklace diamond_necklace(knob, leds);
-FindMyBike find_my_bike(knob, leds);
-FuckMyEyes fuck_my_eyes(knob, leds);
-Stars stars(knob, leds);
+ColorChooser color_chooser(knob, leds);
 Race race(knob, leds);
+Stars stars(knob, leds);
+Rainbow rainbow(knob, leds);
+FuckMyEyes fuck_my_eyes(knob, leds);
+Stripes stripes(knob, leds);
+DiamondNecklace diamond_necklace(knob, leds);
+Dimmer dimmer(knob, leds);
 
 Animation *current_animation = &diamond_necklace;
 
 int animation_index = 0;
 int previous_animation_index = -1;
-void playAnimation()
-{
-  if (animation_index != previous_animation_index)
-  {
-    // Serial.print("Coming from ");
-    // Serial.print(previous_animation_index);
-    // Serial.print(" to ");
-    // Serial.println(animation_index);
-    if (animation_index > 6)
-      animation_index = 0;
+void playAnimation(){
+  if (animation_index != previous_animation_index) {
+    if (animation_index > 8) animation_index = 0;
     // BUG CAUTION
     // never follow one animation function immediately with itself in the the
     // next case
-    switch (animation_index)
-    {
-    case 0:
-      current_animation = &color_chooser;
-      break;
-    case 1:
-      current_animation = &fuck_my_eyes;
-      break;
-    case 2:
-      current_animation = &race;
-      break;
-    case 3:
-      current_animation = &crossfade;
-      break;
-    case 4:
-      current_animation = &diamond_necklace;
-      break;
-    case 5:
-      current_animation = &find_my_bike;
-      break;
-    case 6:
-      current_animation = &stars;
-      break;      
+    switch (animation_index) {
+      case 0:
+        current_animation = &crossfade;
+        break;
+      case 1:
+        current_animation = &color_chooser;
+        break;
+      case 2:
+        current_animation = &race;
+        break;
+      case 3:
+        current_animation = &stars;
+        // current_animation = &stripes;
+        break;
+      case 4:
+        current_animation = &rainbow;
+        break;
+      case 5:
+        current_animation = &fuck_my_eyes;
+        break;
+      case 6:
+        // TODO figure out why Stripes causes kernel panic
+        // current_animation = &stripes;
+        // temporary reuse other animation
+        current_animation = &stars;
+        break;
+      case 7:
+        current_animation = &diamond_necklace;
+        break;
+      case 8:
+        current_animation = &dimmer;
+        break;
+      default:
+        // Serial.println("\n\nWARN: default animation switch case");
+        break;
     }
     current_animation->setup();
     previous_animation_index = animation_index;
@@ -207,8 +206,6 @@ void setup() {
     _radioData.senderId = RADIO_ID;
     _radioData.encoderPosition = 255; // 255 for now to indicate init but invalid
     _radioData.animationId = 255;     // 255 for now to indicate init but invalid
-    _radioDataExample.FailedTxCount = 0;  // TODO remove
-    // sanity check delay - allows reprogramming if accidently blowing power w/leds
     
 
     // CALL MyKnob.Setup()
@@ -276,7 +273,6 @@ void loop() {
       else
       {
           Serial.println("...Failed");
-          _radioDataExample.FailedTxCount++;
       }
   }
   // SIDE-EFFECT: hasData() leaves radio in receive mode
@@ -292,9 +288,6 @@ void loop() {
       msg += _radioData.animationId;
       msg += " -- ";
       msg += _radioData.encoderPosition;
-      msg += " (";
-      msg += _radioDataExample.FailedTxCount;
-      msg += " Failed TX)";
 
       Serial.println(msg);
 
