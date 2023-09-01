@@ -22,23 +22,27 @@ private:
     // Encoder encoder_knob(2,3);
 
     // int position;
-    uint32_t position = 0;
-    uint32_t newPos = 0;
+    // uint32_t position = 0;
+    // uint32_t newPos = 0;
+    int position = 0;
+    int newPos = 0;
     int start = 0;
     int finish = 10;
     int buttonPressCount = 0;
     int loopRotary = false;
     long lastPressTime = 0;
-    void checkRotary()
+    void checkRotary(bool *_localUpdate)
     {
         // long newPos = (uint32_t)encoder_knob.getCount();
-        newPos = (uint32_t)encoder_knob.getCount();
+        // newPos = (uint32_t)encoder_knob.getCount();
+        newPos = (int)encoder_knob.getCount();
         if (newPos == position)
         {
             return;
         }
         position = newPos;
-        Serial.println("\nEncoder count = " + String(position) + "\n");
+        (*_localUpdate) = true;
+        // Serial.println("\n(localupdate) Encoder count = " + String(position) + "\n");
     }
 
     void checkButton(int *_aiIndex)
@@ -65,19 +69,22 @@ public:
       button_debouncer.attach(21, INPUT_PULLUP);
       button_debouncer.interval(25);
     }
-    void set(int position)
+    void set(int _position)
     {
-        encoder_knob.setCount(position);
+        encoder_knob.setCount(_position);
+        position = _position;
     }
-    uint32_t get()
+    // uint32_t get()
+    int get()
     {
-        return (uint32_t)encoder_knob.getCount();
+        return position;
+        // return (uint32_t)encoder_knob.getCount();
     }
-    void check(int *_animationIndex)
+    void check(int *_animationIndex, bool *_localUpdate)
     {
         button_debouncer.update();
         checkButton(_animationIndex);
-        checkRotary();
+        checkRotary(_localUpdate);
         // 50 hz guard to check encoder position changed
         // if(!(millis() % 20)){
         //   checkRotary();

@@ -35,6 +35,7 @@ private:
 
             }
             FastLED.show();
+            FastLED.delay(1000 / FRAMES_PER_SECOND); // TODO this may be bad idea - research
         }
     }
 

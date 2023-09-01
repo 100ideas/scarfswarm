@@ -8,6 +8,9 @@
 
 MyKnob knob;
 
+// this version is port of the early ledswarm 2019 code
+// https://github.com/counterbeing/liteswarm/blob/dc4e0e53ea9b77c02f954a00a81d340e21b89678/src/main.cpp
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // init FastLED
 /* FastLED ESP32 Hardware SPI Driver
@@ -39,77 +42,10 @@ MyKnob knob;
 #define FASTLED_ALL_PINS_HARDWARE_SPI // <-- must be defined BEFORE FastLED.h included
 #define FASTLED_ESP32_SPI_BUS VSPI
 #include <FastLED.h>
-
-/* https://github.com/FastLED/FastLED/blob/master/src/platforms/esp/32/fastspi_esp32.h#L58C1-L61C30
- *  static uint8_t spiClk = 18;
- *  static uint8_t spiMiso = 19;
- *  static uint8_t spiMosi = 23;
- *  static uint8_t spiCs = 5;
- */
-// #TODO want to find a clean way to pull these defs from where they are already defined in fastspi_esp32.h
-// #define LED_spiClk 18
-// #define LED_spiMosi 23
-// #define NUMPIXELS 60
-// #define FRAMES_PER_SECOND 60
 CRGB leds[NUMPIXELS];
 
-// #define buttonPin 21
-// #define rotary1 17
-// #define rotary2 16
 
-
-#include "animations/DiamondNecklace.h"
-
-DiamondNecklace diamond_necklace(knob, leds);
-
-Animation *current_animation = &diamond_necklace;
-
-int animation_index = 0;
-int previous_animation_index = -1;
-void playAnimation()
-{
-  if (animation_index != previous_animation_index)
-  {
-    // Serial.print("Coming from ");
-    // Serial.print(previous_animation_index);
-    // Serial.print(" to ");
-    // Serial.println(animation_index);
-    if (animation_index > 5)
-      // animation_index = 0;
-      animation_index = 4;
-    // BUG CAUTION
-    // never follow one animation function immediately with itself in the the
-    // next case
-    switch (animation_index)
-    {
-    case 0:
-      // current_animation = &color_chooser;
-      break;
-    case 1:
-      // current_animation = &fuck_my_eyes;
-      break;
-    case 2:
-      // current_animation = &race;
-      break;
-    case 3:
-      // current_animation = &crossfade;
-      break;
-    case 4:
-      current_animation = &diamond_necklace;
-      break;
-    case 5:
-      // current_animation = &find_my_bike;
-      break;
-    }
-    current_animation->setup();
-    previous_animation_index = animation_index;
-  }
-  current_animation->run();
-}
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
 // init radio
 /* https://github.com/dparson55/NRFLite/blob/4e425d742ca8879d654a270c7c02c13440476e7a/examples/Basic_RX_ESP32/Basic_RX_ESP32.ino
  * 
@@ -156,6 +92,60 @@ const static uint8_t PIN_RADIO_SCK = 14;
 const static uint8_t RADIO_ID = (uint8_t)random();
 const static uint8_t SHARED_RADIO_ID = 1; // from after litewarm master 3ea81e3f4b1211809066e6f9649927cf23428956
 const static uint8_t SHARED_SECRET = 42;  // bikelight scarves use this & radio_id = 1
+
+
+
+
+#include "animations/DiamondNecklace.h"
+
+DiamondNecklace diamond_necklace(knob, leds);
+
+Animation *current_animation = &diamond_necklace;
+
+int animation_index = 0;
+int previous_animation_index = -1;
+void playAnimation()
+{
+  if (animation_index != previous_animation_index)
+  {
+    // Serial.print("Coming from ");
+    // Serial.print(previous_animation_index);
+    // Serial.print(" to ");
+    // Serial.println(animation_index);
+    if (animation_index > 5)
+      animation_index = 0;
+      // animation_index = 4;
+    // BUG CAUTION
+    // never follow one animation function immediately with itself in the the
+    // next case
+    switch (animation_index)
+    {
+    case 0:
+      // current_animation = &color_chooser;
+      break;
+    case 1:
+      // current_animation = &fuck_my_eyes;
+      break;
+    case 2:
+      // current_animation = &race;
+      break;
+    case 3:
+      // current_animation = &crossfade;
+      break;
+    case 4:
+      current_animation = &diamond_necklace;
+      animation_index = 4;
+      break;
+    case 5:
+      // current_animation = &find_my_bike;
+      break;
+    }
+    current_animation->setup();
+    previous_animation_index = animation_index;
+    _radioData.animationId = animation_index;
+  }
+  current_animation->run();
+}
 
 
 
@@ -234,44 +224,25 @@ void setup() {
 // main loop
 // TODO refactor loop() so millis() inner-loop state not needed - ugly
 uint32_t now = 0;
-bool localUpdate;
-bool weBlinkin = true;
+bool localUpdate = false;
 
 void loop() {
-
   // tracking updates in superloop (not concurrent friendly!!!)
+  playAnimation();
   localUpdate = false;
+
+  // can set localUpdate true
+  knob.check(&animation_index, &localUpdate);
+
   // (millis() will always not always be called w/ sub-ms frequency)
   now = millis();
-  
-  // if(weBlinkin){
-  //   blink();
-  // };
 
-  if(!(now % 2000)){
-    Serial.print("\nEncoder count = ");
-    Serial.println(knob.get());
-  }
-
-
-  // #TODO refactor w/ Knob.h
-  // currently encoder.getCount() can return negative and cause encoderPosition to roll over
-  // 50 hz check if encoder position changed
-  // if(!(now % 20)){
-  //   if (encoderPosition != encoder.getCount()){
-  //     // TODO caution, encoder getCount() may return SIGNED int64?
-  //     // casting incorrectly (int32_t) caused lock up
-  //     encoderPosition = (uint32_t)encoder.getCount(); 
-  //     _radioData.encoderPosition = encoderPosition;
-  //     localUpdate = true;
-  //     Serial.println("\nEncoder count = " + String(encoderPosition) + "\n");
-  //     // Serial.println("2. Encoder count = " + String((int32_t)encoder.getCount()));
-  //   }
-  // };
 
   // enter SEND mode AT MOST every ~5 sec or so (currently 5 sec heartbeat)
-  if (now % 5000 == 0 || localUpdate)
+  if (now % 3000 == 0 || localUpdate)
   {
+      _radioData.animationId = animation_index;
+      _radioData.encoderPosition = knob.get();
       String msg = "<== SENT [";
       msg += RADIO_ID;
       msg += "=>";
@@ -282,13 +253,6 @@ void loop() {
       msg += _radioData.encoderPosition; 
       Serial.println(msg);
 
-      // Serial.print(" encoder.getCount(): ");
-      // Serial.println(encoder.getCount());
-      // Serial.print(" (int32_t)encoder.getCount(): ");
-      // Serial.println((int32_t)encoder.getCount());
-      
-      // liteswarm#master/Radio.h#72
-      // _radio.send(SHARED_RADIO_ID, &_outboundRadioPacket, sizeof(_outboundRadioPacket), NRFLite::NO_ACK);
       if (_radio.send(SHARED_RADIO_ID, &_radioData, sizeof(_radioData)), NRFLite::NO_ACK)
       {
           // Serial.println("...Success");
@@ -318,14 +282,10 @@ void loop() {
 
       Serial.println(msg);
 
-      // if(_radioData.encoderPosition < 100){
-      //   weBlinkin = false;
-      //   fill_solid(leds, NUMPIXELS, CRGB::Red);
-      // } else {
-      //   weBlinkin = true;
-      //   fill_solid(leds, NUMPIXELS, CRGB::White);
-      // };
+      animation_index = _radioData.animationId;
+      knob.set(_radioData.encoderPosition);
+      Serial.print(knob.get());
+      Serial.println(": setting encoderPosition from incoming packet");
   }
-  knob.check(&animation_index);
-  playAnimation();
+  // playAnimation();
 }

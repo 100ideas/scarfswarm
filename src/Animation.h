@@ -10,7 +10,7 @@ protected:
     int start;
     int finish;
     int initialSetting;
-    long previousMillis = 0;
+    unsigned long previousMillis = 0;
     bool initialized = false;
 
     int remapInRange(int index)
