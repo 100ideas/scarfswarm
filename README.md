@@ -1,7 +1,7 @@
 # scarfswarm
 
 ## 2023-09-08 NOTE
-this branch is a merge from a separate repo 100ideas/scarfswarm/releases/tag([BM23](https://github.com/100ideas/scarfswarm/releases/tag/BM23)|[v0.1.0](https://github.com/100ideas/scarfswarm/tree/v0.1.0)) which itself was refactored from [the 2019-july master branch of this  repo counterbeing/liteswarm, somewhere around here](https://github.com/counterbeing/liteswarm/blob/dc4e0e53ea9b77c02f954a00a81d340e21b89678/src/main.cpp). This branch compiles on esp32 dev boards with nrf24 and rotary encoder knobs attached to esp32 GPIO pins as defined in [`/src/config.h`](src/config.h). 
+currently, `master` is based on 'BM23` branch, which was refactored from [the 2019-july master branch of this  repo counterbeing/liteswarm, somewhere around here](https://github.com/counterbeing/liteswarm/blob/dc4e0e53ea9b77c02f954a00a81d340e21b89678/src/main.cpp) to work with esp32. BM23 branch compiles on esp32 dev boards and works with the with nrf24 and rotary encoder knobs used in the original project, just attached to esp32 GPIO pins as defined in [`/src/config.h`](src/config.h). 
 
 The GPIO pin settings should be compatible with ESP-WROOM-32 DevKit-v1 style breakout boards. I used these "[5PCS ESP-WROOM-32 ESP32 ESP-32S Development Board...](https://www.amazon.com/dp/B0BK13HWBJ) from amazon, but I want to switch to using one of the boards made by [Unexpected Maker](https://unexpectedmaker.com/shop.html) (tbd)."
 
