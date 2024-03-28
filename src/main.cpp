@@ -247,21 +247,6 @@ void setup() {
     // CALL MyKnob.Setup()
     knob.setup();
 
-    // Rotary Encoder Knob
-    // https://github.com/madhephaestus/ESP32Encoder/blob/master/examples/Encoder/Encoder.ino
-    // ESP32Encoder::useInternalWeakPullResistors=UP;
-    // // use pin 19 and 18 for the first encoder
-    // encoder.attachHalfQuad(17, 16);
-    // // clear the encoder's raw count and set the tracked count to zero
-    // encoder.clearCount();
-    // Serial.println("Encoder Start = " + String((int32_t)encoder.getCount()));
-
-
-    // button_debouncer.attach(buttonPin, INPUT_PULLUP);
-    // button_debouncer.interval(25);
-
-
-
     Serial.printf("finished setup\n");
     // Now the task scheduler, which takes over control of scheduling individual tasks, is automatically started.
 }

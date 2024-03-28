@@ -61,14 +61,31 @@ public:
       // Rotary Encoder Knob
       // https://github.com/madhephaestus/ESP32Encoder/blob/master/examples/Encoder/Encoder.ino
       ESP32Encoder::useInternalWeakPullResistors=UP;
+
+    /* HW Filtering knob encoder and switch signals - turns out to be critical!
+    **
+    ** performance much improved w hardware filter on knob phase inputs, 0.01 - 1 uF cap + 10k pullup resistor - may need also something for switch
+    **
+    ** see 
+    ** https://www.robkalmeijer.nl/techniek/computer/arduino/sensors/rot_encod/index.html - !!! I implemented this approach and it immediately fixed my knob and switch problems
+    ** http://www.labbookpages.co.uk/electronics/debounce.html
+    ** https://my.eng.utah.edu/~cs5780/debouncing.pdf - A Guide to Debouncing
+    ** https://github.com/jozef/Arduino-RotaryEncoder/blob/master/examples/RotaryEncoder_single/RotaryEncoder-schema.svg - kicad implementation for rotary encoder swith
+    */
+
       encoder_knob.attachHalfQuad(rotary1, rotary2);
       // clear the encoder's raw count and set the tracked count to zero
       encoder_knob.clearCount();
+      // set PCNT debounce filter to maximum
+      encoder_knob.setFilter(16);
+      // encoder_knob.setFilter(128);
       // encoder_knob.setCount(128); // init in middle 0-255
       Serial.println("Encoder Start = " + String((uint32_t)encoder_knob.getCount()));
 
-      button_debouncer.attach(buttonPin, INPUT_PULLUP);
-      button_debouncer.interval(25);
+      // http://thomasfredericks.github.io/Bounce2/
+      button_debouncer.attach(buttonPin, INPUT);
+      button_debouncer.interval(5);
+      button_debouncer.setPressedState(HIGH);
     }
     void set(int _position)
     {

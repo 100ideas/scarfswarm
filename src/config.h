@@ -32,9 +32,15 @@ GND   -> GND
 // #define PIN_RADIO_MISO 19
 // #define PIN_RADIO_SCK 18
 
+// knob 1
 #define buttonPin 34
 #define rotary1 36
 #define rotary2 39
+
+// knob 2
+// #define buttonPin 33
+// #define rotary1 35
+// #define rotary2 32
 
 
 // TODO setup PCB revision pinout IFDEF blocks to make it easy to program diff hw (see previous commit for other pinouts)
