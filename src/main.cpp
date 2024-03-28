@@ -39,8 +39,12 @@ MyKnob knob;
 #define ESP32
 #endif
 
-#define FASTLED_ALL_PINS_HARDWARE_SPI // <-- must be defined BEFORE FastLED.h included
-#define FASTLED_ESP32_SPI_BUS VSPI
+// FIX
+// TODO liteswarm1 v0.1.0 pcb doesn't connect LED to HW_SPI pins so the following breaks
+//      fastled (seems to ignore LED_DATA, LED_CLOCK params passed in init)
+//      consider rearranging pinout in next version pcb
+// #define FASTLED_ALL_PINS_HARDWARE_SPI // <-- must be defined BEFORE FastLED.h included
+// #define FASTLED_ESP32_SPI_BUS VSPI
 #include <FastLED.h>
 CRGB leds[NUMPIXELS];
 
@@ -73,11 +77,12 @@ NRFLite _radio;
 RadioPacket _radioData;
 
 // ezscb.com esp32 feather ~v1 SPI2/HSPI 
-const static uint8_t PIN_RADIO_CE = 27;
-const static uint8_t PIN_RADIO_CSN = 15;
-const static uint8_t PIN_RADIO_MOSI = 13;
-const static uint8_t PIN_RADIO_MISO = 12;
-const static uint8_t PIN_RADIO_SCK = 14;
+const static uint8_t PIN_RADIO_MOSI = 23;
+const static uint8_t PIN_RADIO_MISO = 19;
+const static uint8_t PIN_RADIO_SCK = 18;
+const static uint8_t PIN_RADIO_CSN = 5;
+const static uint8_t PIN_RADIO_CE = 17;
+const static uint8_t PIN_RADIO_IRQ = 16;
 // PIN_RADIO_IRQ = 33
 const static uint8_t RADIO_ID = (uint8_t)random();
 const static uint8_t SHARED_RADIO_ID = 1; // from after litewarm master 3ea81e3f4b1211809066e6f9649927cf23428956
@@ -174,29 +179,55 @@ void playAnimation(){
 ///////////////////////////////////////////////////////////////////////////////////////////
 // setup
 void setup() {
+
+    // TODO make serial conditional to reduce IO usage when not debugging
     // Initialize serial communication at 115200 bits per second:
     Serial.begin(115200);
 
 
     // FastLED
     // https://github.com/FastLED/FastLED/blob/master/src/FastLED.h#L246
-    FastLED.addLeds<APA102, LED_spiMosi, LED_spiClk, BGR>(leds, NUMPIXELS);  // BGR ordering is typical
+    FastLED.addLeds<APA102, LED_DATA, LED_CLOCK, BGR>(leds, NUMPIXELS);  // BGR ordering is typical
       
       // ray wu braided nylon WS2812B 50 pixels / meter 
       // https://www.aliexpress.us/item/3256805646893529.html
-    // FastLED.addLeds<WS2812B, LED_spiMosi, GRB>(leds, NUMPIXELS);  // BGR ordering is typical
+    // FastLED.addLeds<WS2812B, LED_DATA, GRB>(leds, NUMPIXELS);  // BGR ordering is typical
     
     // FastLED.setBrightness(84);
     Serial.println("main.setup(): FastLED.addLeds() complete\n");
     fill_solid(leds, NUMPIXELS, CRGB::Green);
-    // fill_solid(leds, NUMPIXELS, CRGB::Blue);
     FastLED.show();
     delay(1000);
+    FastLED.clear();
+    
+    fill_solid(leds, NUMPIXELS, CRGB::Blue);
+    FastLED.show();
+    delay(500);
+    FastLED.clear();
 
+    fill_solid(leds, NUMPIXELS, CRGB::Green);
+    FastLED.show();
+    delay(300);
+    FastLED.clear();
+
+    fill_solid(leds, NUMPIXELS, CRGB::Blue);
+    FastLED.show();
+    delay(200);
+    FastLED.clear();
+
+    fill_solid(leds, NUMPIXELS, CRGB::Green);
+    FastLED.show();
+    delay(100);
+    FastLED.clear();
+    delay(1000);
 
 
     // nrf24 radio 
     // https://nrf24.github.io/RF24/index.html#autotoc_md45
+    // 
+    // TODO try using interrupts to mitigate polling sucking up cycles
+    // https://github.com/dparson55/NRFLite/blob/43dce0cfb5ffbc2f664c053e277a7de83c59af87/examples/IRQ_TX/IRQ_TX.ino#L3
+    // 
     SPI.begin(PIN_RADIO_SCK, PIN_RADIO_MISO, PIN_RADIO_MOSI, PIN_RADIO_CSN);
     // Indicate to NRFLite that it should not call SPI.begin() during initialization since it has already been done.
     uint8_t callSpiBegin = 0;
@@ -256,9 +287,9 @@ void loop() {
   now = millis();
 
 
-  // TODO if radio fails to init, disable polling for radio data
-  // enter SEND mode AT MOST every ~5 sec or so (currently 5 sec heartbeat)
-  if (now % 5000 == 0 || localUpdate)
+  // TODO if radio fails to init, disable polling for radio
+  // enter SEND mode AT MOST every ~10 sec or so if no localupdate
+  if (now % 10000 == 0 || localUpdate)
   {
       _radioData.animationId = animation_index;
       _radioData.encoderPosition = knob.get();

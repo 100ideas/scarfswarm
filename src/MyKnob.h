@@ -61,13 +61,13 @@ public:
       // Rotary Encoder Knob
       // https://github.com/madhephaestus/ESP32Encoder/blob/master/examples/Encoder/Encoder.ino
       ESP32Encoder::useInternalWeakPullResistors=UP;
-      encoder_knob.attachHalfQuad(17, 16);
+      encoder_knob.attachHalfQuad(rotary1, rotary2);
       // clear the encoder's raw count and set the tracked count to zero
       encoder_knob.clearCount();
       // encoder_knob.setCount(128); // init in middle 0-255
       Serial.println("Encoder Start = " + String((uint32_t)encoder_knob.getCount()));
 
-      button_debouncer.attach(21, INPUT_PULLUP);
+      button_debouncer.attach(buttonPin, INPUT_PULLUP);
       button_debouncer.interval(25);
     }
     void set(int _position)
