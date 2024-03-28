@@ -14,8 +14,11 @@ VCC   -> No more than 3.6 volts
 GND   -> GND
 */
 
-// #define NUMPIXELS 60
-#define NUMPIXELS 75
+#define NUMPIXELS 60
+// ray wu braided nylon WS2812B 50 pixels / meter 
+// https://www.aliexpress.us/item/3256805646893529.html
+// #define NUMPIXELS 250 // - nylon
+// #define NUMPIXELS 75 // smallest round rope rope
 #define FRAMES_PER_SECOND 60
 #define LED_spiClk 18
 #define LED_spiMosi 23
@@ -26,6 +29,8 @@ GND   -> GND
 // #define PIN_RADIO_MISO 19
 // #define PIN_RADIO_SCK 18
 
+
+// OUT OF DATE hordcoded in MyKNob 16,17; 21
 // maybe 16,17,xx? feather
 #define buttonPin 39
 #define rotary1 34

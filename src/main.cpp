@@ -181,6 +181,11 @@ void setup() {
     // FastLED
     // https://github.com/FastLED/FastLED/blob/master/src/FastLED.h#L246
     FastLED.addLeds<APA102, LED_spiMosi, LED_spiClk, BGR>(leds, NUMPIXELS);  // BGR ordering is typical
+      
+      // ray wu braided nylon WS2812B 50 pixels / meter 
+      // https://www.aliexpress.us/item/3256805646893529.html
+    // FastLED.addLeds<WS2812B, LED_spiMosi, GRB>(leds, NUMPIXELS);  // BGR ordering is typical
+    
     // FastLED.setBrightness(84);
     Serial.println("main.setup(): FastLED.addLeds() complete\n");
     fill_solid(leds, NUMPIXELS, CRGB::Green);
@@ -251,6 +256,7 @@ void loop() {
   now = millis();
 
 
+  // TODO if radio fails to init, disable polling for radio data
   // enter SEND mode AT MOST every ~5 sec or so (currently 5 sec heartbeat)
   if (now % 5000 == 0 || localUpdate)
   {
