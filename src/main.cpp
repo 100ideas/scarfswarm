@@ -198,28 +198,28 @@ void setup() {
     fill_solid(leds, NUMPIXELS, CRGB::Green);
     FastLED.show();
     delay(1000);
-    FastLED.clear();
+    // FastLED.clear();
     
-    fill_solid(leds, NUMPIXELS, CRGB::Blue);
-    FastLED.show();
-    delay(500);
-    FastLED.clear();
+    // fill_solid(leds, NUMPIXELS, CRGB::Blue);
+    // FastLED.show();
+    // delay(500);
+    // FastLED.clear();
 
-    fill_solid(leds, NUMPIXELS, CRGB::Green);
-    FastLED.show();
-    delay(300);
-    FastLED.clear();
+    // fill_solid(leds, NUMPIXELS, CRGB::Green);
+    // FastLED.show();
+    // delay(300);
+    // FastLED.clear();
 
-    fill_solid(leds, NUMPIXELS, CRGB::Blue);
-    FastLED.show();
-    delay(200);
-    FastLED.clear();
+    // fill_solid(leds, NUMPIXELS, CRGB::Blue);
+    // FastLED.show();
+    // delay(200);
+    // FastLED.clear();
 
-    fill_solid(leds, NUMPIXELS, CRGB::Green);
-    FastLED.show();
-    delay(100);
-    FastLED.clear();
-    delay(1000);
+    // fill_solid(leds, NUMPIXELS, CRGB::Green);
+    // FastLED.show();
+    // delay(100);
+    // FastLED.clear();
+    // delay(1000);
 
 
     // nrf24 radio 
@@ -228,39 +228,22 @@ void setup() {
     // TODO try using interrupts to mitigate polling sucking up cycles
     // https://github.com/dparson55/NRFLite/blob/43dce0cfb5ffbc2f664c053e277a7de83c59af87/examples/IRQ_TX/IRQ_TX.ino#L3
     // 
-    SPI.begin(PIN_RADIO_SCK, PIN_RADIO_MISO, PIN_RADIO_MOSI, PIN_RADIO_CSN);
-    // Indicate to NRFLite that it should not call SPI.begin() during initialization since it has already been done.
-    uint8_t callSpiBegin = 0;
-    // init radio w common ID so all are in "broadcast" mode
-    // TODO NRFLite::BITRATE250KBPS compat w/ bikelites, any improvements?
-    if (!_radio.init(SHARED_RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE2MBPS, 100, callSpiBegin))
-    {
-        Serial.println("Cannot communicate with radio");
-        // while (1); // Wait here forever.
-    }
-    Serial.println("main.setup(): _radio.init() complete");
-    _radioData.senderId = RADIO_ID;
-    _radioData.encoderPosition = 255; // 255 for now to indicate init but invalid
-    _radioData.animationId = 255;     // 255 for now to indicate init but invalid
+    // SPI.begin(PIN_RADIO_SCK, PIN_RADIO_MISO, PIN_RADIO_MOSI, PIN_RADIO_CSN);
+    // // Indicate to NRFLite that it should not call SPI.begin() during initialization since it has already been done.
+    // uint8_t callSpiBegin = 0;
+    // // init radio w common ID so all are in "broadcast" mode
+    // // TODO NRFLite::BITRATE250KBPS compat w/ bikelites, any improvements?
+    // if (!_radio.init(SHARED_RADIO_ID, PIN_RADIO_CE, PIN_RADIO_CSN, NRFLite::BITRATE2MBPS, 100, callSpiBegin))
+    // {
+    //     Serial.println("Cannot communicate with radio");
+    //     // while (1); // Wait here forever.
+    // }
+    // Serial.println("main.setup(): _radio.init() complete");
+    // _radioData.senderId = RADIO_ID;
+    // _radioData.encoderPosition = 255; // 255 for now to indicate init but invalid
+    // _radioData.animationId = 255;     // 255 for now to indicate init but invalid
     
-
-    // CALL MyKnob.Setup()
     knob.setup();
-
-    // Rotary Encoder Knob
-    // https://github.com/madhephaestus/ESP32Encoder/blob/master/examples/Encoder/Encoder.ino
-    // ESP32Encoder::useInternalWeakPullResistors=UP;
-    // // use pin 19 and 18 for the first encoder
-    // encoder.attachHalfQuad(17, 16);
-    // // clear the encoder's raw count and set the tracked count to zero
-    // encoder.clearCount();
-    // Serial.println("Encoder Start = " + String((int32_t)encoder.getCount()));
-
-
-    // button_debouncer.attach(buttonPin, INPUT_PULLUP);
-    // button_debouncer.interval(25);
-
-
 
     Serial.printf("finished setup\n");
     // Now the task scheduler, which takes over control of scheduling individual tasks, is automatically started.
@@ -280,8 +263,12 @@ void loop() {
   playAnimation();
   localUpdate = false;
 
+
+  if (now % 500 == 0 || localUpdate)
+  {
   // can set localUpdate true
-  knob.check(&animation_index, &localUpdate);
+    knob.check(&animation_index, &localUpdate);
+  }
 
   // (millis() will always not always be called w/ sub-ms frequency)
   now = millis();
@@ -289,49 +276,49 @@ void loop() {
 
   // TODO if radio fails to init, disable polling for radio
   // enter SEND mode AT MOST every ~10 sec or so if no localupdate
-  if (now % 10000 == 0 || localUpdate)
-  {
-      _radioData.animationId = animation_index;
-      _radioData.encoderPosition = knob.get();
-      String msg = "<== SENT [";
-      msg += RADIO_ID;
-      msg += "=>";
-      msg += SHARED_RADIO_ID;
-      msg += "]: ";
-      msg += _radioData.animationId;
-      msg += " -- ";
-      msg += _radioData.encoderPosition; 
-      Serial.println(msg);
+  // if (now % 10000 == 0 || localUpdate)
+  // {
+  //     _radioData.animationId = animation_index;
+  //     _radioData.encoderPosition = knob.get();
+  //     String msg = "<== SENT [";
+  //     msg += RADIO_ID;
+  //     msg += "=>";
+  //     msg += SHARED_RADIO_ID;
+  //     msg += "]: ";
+  //     msg += _radioData.animationId;
+  //     msg += " -- ";
+  //     msg += _radioData.encoderPosition; 
+  //     Serial.println(msg);
 
-      if (_radio.send(SHARED_RADIO_ID, &_radioData, sizeof(_radioData)), NRFLite::NO_ACK)
-      {
-          // Serial.println("...Success");
-      }
-      else
-      {
-          Serial.println("...Failed");
-      }
-  }
-  // SIDE-EFFECT: hasData() leaves radio in receive mode
-  while(_radio.hasData())
-  {
-      _radio.readData(&_radioData);
+  //     if (_radio.send(SHARED_RADIO_ID, &_radioData, sizeof(_radioData)), NRFLite::NO_ACK)
+  //     {
+  //         // Serial.println("...Success");
+  //     }
+  //     else
+  //     {
+  //         Serial.println("...Failed");
+  //     }
+  // }
+  // // SIDE-EFFECT: hasData() leaves radio in receive mode
+  // while(_radio.hasData())
+  // {
+  //     _radio.readData(&_radioData);
       
-      String msg = "==> RCVD [";
-      msg += _radioData.senderId;
-      msg += "=>";
-      msg += SHARED_RADIO_ID;
-      msg += "]: ";
-      msg += _radioData.animationId;
-      msg += " -- ";
-      msg += _radioData.encoderPosition;
+  //     String msg = "==> RCVD [";
+  //     msg += _radioData.senderId;
+  //     msg += "=>";
+  //     msg += SHARED_RADIO_ID;
+  //     msg += "]: ";
+  //     msg += _radioData.animationId;
+  //     msg += " -- ";
+  //     msg += _radioData.encoderPosition;
 
-      Serial.println(msg);
+  //     Serial.println(msg);
 
-      animation_index = _radioData.animationId;
-      knob.set(_radioData.encoderPosition);
-      Serial.print(knob.get());
-      Serial.println(": setting encoderPosition from incoming packet");
-  }
-  // playAnimation();
+  //     animation_index = _radioData.animationId;
+  //     knob.set(_radioData.encoderPosition);
+  //     Serial.print(knob.get());
+  //     Serial.println(": setting encoderPosition from incoming packet");
+  // }
+  // // playAnimation();
 }

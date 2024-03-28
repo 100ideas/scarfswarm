@@ -61,14 +61,20 @@ public:
       // Rotary Encoder Knob
       // https://github.com/madhephaestus/ESP32Encoder/blob/master/examples/Encoder/Encoder.ino
       ESP32Encoder::useInternalWeakPullResistors=UP;
-      encoder_knob.attachHalfQuad(rotary1, rotary2);
+
+    // performance much improved w hardware filter on knob phase inputs, 0.01 - 1 uF cap + 10k pullup resistor - may need also something for switch
+
+      encoder_knob.attachHalfQuad(rotary2, rotary1);
       // clear the encoder's raw count and set the tracked count to zero
       encoder_knob.clearCount();
+      // set PCNT debounce filter to maximum
+      encoder_knob.setFilter(1023);
       // encoder_knob.setCount(128); // init in middle 0-255
       Serial.println("Encoder Start = " + String((uint32_t)encoder_knob.getCount()));
 
       button_debouncer.attach(buttonPin, INPUT_PULLUP);
       button_debouncer.interval(25);
+    // button_debouncer.interval(75);
     }
     void set(int _position)
     {
