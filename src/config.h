@@ -32,15 +32,23 @@ GND   -> GND
 // #define PIN_RADIO_MISO 19
 // #define PIN_RADIO_SCK 18
 
-// knob 1 - v0.1.0
-#define buttonPin 34
-#define rotary1 36
-#define rotary2 39
+// BAD DO NOT USE GPIX (input-only) pins for buttons/knobs
+// INTERNAL PULL-UP Resistors not present, will be nousy w/o
+// external LC filter
+// // knob 1 - v0.1.0
+// #define buttonPin 34
+// #define rotary1 36
+// #define rotary2 39
 
-// knob 2
-// #define buttonPin 33
-// #define rotary1 35
-// #define rotary2 32
+// knob 1 - v0.1.1
+#define buttonPin 14
+#define rotary1 27
+#define rotary2 26
+
+// knob 2 - v0.1.1 
+#define buttonPin 33
+#define rotary1 25
+#define rotary2 32
 
 
 // TODO setup PCB revision pinout IFDEF blocks to make it easy to program diff hw (see previous commit for other pinouts)

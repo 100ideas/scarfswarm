@@ -77,13 +77,14 @@ public:
       // clear the encoder's raw count and set the tracked count to zero
       encoder_knob.clearCount();
       // set PCNT debounce filter to maximum
-      encoder_knob.setFilter(16);
-      // encoder_knob.setFilter(128);
+    //   encoder_knob.setFilter(16);
+      encoder_knob.setFilter(128);
       // encoder_knob.setCount(128); // init in middle 0-255
       Serial.println("Encoder Start = " + String((uint32_t)encoder_knob.getCount()));
 
       // http://thomasfredericks.github.io/Bounce2/
-      button_debouncer.attach(buttonPin, INPUT);
+    //   button_debouncer.attach(buttonPin, INPUT);
+      button_debouncer.attach(buttonPin, INPUT_PULLUP);
       button_debouncer.interval(5);
       button_debouncer.setPressedState(HIGH);
     }
