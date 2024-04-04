@@ -32,7 +32,7 @@ GND   -> GND
 // #define PIN_RADIO_MISO 19
 // #define PIN_RADIO_SCK 18
 
-// knob 1
+// knob 1 - v0.1.0
 #define buttonPin 34
 #define rotary1 36
 #define rotary2 39
