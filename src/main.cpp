@@ -187,14 +187,16 @@ void setup() {
 
     // FastLED
     // https://github.com/FastLED/FastLED/blob/master/src/FastLED.h#L246
-    FastLED.addLeds<APA102, LED_DATA, LED_CLOCK, BGR>(leds, NUMPIXELS);  // BGR ordering is typical
-      
-      // ray wu braided nylon WS2812B 50 pixels / meter 
-      // https://www.aliexpress.us/item/3256805646893529.html
-    // FastLED.addLeds<WS2812B, LED_DATA, GRB>(leds, NUMPIXELS);  // BGR ordering is typical
+    // FastLED.addLeds<APA102, LED_DATA, LED_CLOCK, BGR>(leds, NUMPIXELS);  // BGR ordering is typical  
+    //
+    // ray wu braided nylon WS2812B 50 pixels / meter 
+    // https://www.aliexpress.us/item/3256805646893529.html
+    FastLED.addLeds<WS2812B, LED_DATA, GRB>(leds, NUMPIXELS);  // BGR ordering is typical
     
-    // FastLED.setBrightness(84);
+    // FastLED.setBrightness(128);
+    FastLED.setBrightness(220); // 12v strand of balls
     Serial.println("main.setup(): FastLED.addLeds() complete\n");
+    
     fill_solid(leds, NUMPIXELS, CRGB::Green);
     FastLED.show();
     delay(1000);

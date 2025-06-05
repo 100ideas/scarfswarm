@@ -16,11 +16,13 @@ VCC   -> No more than 3.6 volts
 GND   -> GND
 */
 
-#define NUMPIXELS 75
+// #define NUMPIXELS 75
 // ray wu braided nylon WS2812B 50 pixels / meter 
 // https://www.aliexpress.us/item/3256805646893529.html
-// #define NUMPIXELS 250 // - nylon
+// #define NUMPIXELS 250 // - nylon, 5m
+// #define NUMPIXELS 125 // - nylon, cut in half into 2x 2.5m
 // #define NUMPIXELS 75 // smallest round rope rope
+#define NUMPIXELS 40 // - strand of balls 12v
 #define FRAMES_PER_SECOND 60
 #define LED_CLOCK 13
 #define LED_DATA 12
@@ -40,12 +42,14 @@ GND   -> GND
 // #define rotary1 36
 // #define rotary2 39
 
-// knob 1 - v0.1.1
+// knob 1 (top) - v0.1.1
+// on this pcb version this knob req 3 rework wires
 #define buttonPin 14
 #define rotary1 27
 #define rotary2 26
 
-// knob 2 - v0.1.1 
+// knob 2 (side) - v0.1.1 
+// this one only needs one, so using it
 #define buttonPin 33
 #define rotary1 25
 #define rotary2 32
