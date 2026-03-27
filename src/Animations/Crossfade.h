@@ -5,11 +5,12 @@
 class Crossfade : public Animation
 {
 private:
-    int initialPosition = 40;
+    int initialPosition = 100;
+    // int initialPosition = 5; //bad
     int start = 5;
     int finish = 200;
     bool initialized = false;
-    int head = 0;
+    int head = 0; // unused?
     bool loopRotary = false;
     MyKnob &knob;
     CRGB *leds;

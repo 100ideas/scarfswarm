@@ -76,14 +76,24 @@ struct __attribute__((packed)) RadioPacket  // Any packet up to 32 bytes can be 
 NRFLite _radio;
 RadioPacket _radioData;
 
-// ezscb.com esp32 feather ~v1 SPI2/HSPI 
-const static uint8_t PIN_RADIO_MOSI = 23;
-const static uint8_t PIN_RADIO_MISO = 19;
-const static uint8_t PIN_RADIO_SCK = 18;
-const static uint8_t PIN_RADIO_CSN = 5;
-const static uint8_t PIN_RADIO_CE = 17;
+// ezscb.com esp32 feather ~v1 SPI2/HSPI (blue board)
+// const static uint8_t PIN_RADIO_MOSI = 13;
+// const static uint8_t PIN_RADIO_MISO = 12;
+// const static uint8_t PIN_RADIO_SCK = 14;
+// const static uint8_t PIN_RADIO_CSN = 15;
+// const static uint8_t PIN_RADIO_CE = 27;
+// const static uint8_t PIN_RADIO_CS = 15;
+// const static uint8_t PIN_RADIO_IRQ = 33;
+
+// // doit esp32 devkit v1 (black board)
+const static uint8_t PIN_RADIO_MOSI = 13;
+const static uint8_t PIN_RADIO_MISO = 12;
+const static uint8_t PIN_RADIO_SCK = 14;
+const static uint8_t PIN_RADIO_CSN = 15;
+const static uint8_t PIN_RADIO_CE = 27;
 const static uint8_t PIN_RADIO_IRQ = 16;
-// PIN_RADIO_IRQ = 33
+
+
 const static uint8_t RADIO_ID = (uint8_t)random();
 const static uint8_t SHARED_RADIO_ID = 1; // from after litewarm master 3ea81e3f4b1211809066e6f9649927cf23428956
 const static uint8_t SHARED_SECRET = 42;  // bikelight scarves use this & radio_id = 1
@@ -143,7 +153,7 @@ void playAnimation(){
         break;
       case 6:
         // TODO figure out why Stripes causes kernel panic
-        // current_animation = &stripes;
+        current_animation = &stripes;
         // temporary reuse other animation
         current_animation = &stars;
         break;
@@ -187,14 +197,20 @@ void setup() {
 
     // FastLED
     // https://github.com/FastLED/FastLED/blob/master/src/FastLED.h#L246
-    // FastLED.addLeds<APA102, LED_DATA, LED_CLOCK, BGR>(leds, NUMPIXELS);  // BGR ordering is typical  
-    //
-    // ray wu braided nylon WS2812B 50 pixels / meter 
-    // https://www.aliexpress.us/item/3256805646893529.html
-    FastLED.addLeds<WS2812B, LED_DATA, GRB>(leds, NUMPIXELS);  // BGR ordering is typical
-    
-    // FastLED.setBrightness(128);
-    FastLED.setBrightness(220); // 12v strand of balls
+    #ifdef LEDTYPE_APA102
+      Serial.println("FastLED configured for APA102\n");
+      FastLED.addLeds<APA102, LED_DATA, LED_CLOCK, BGR>(leds, NUMPIXELS);  // BGR ordering is typical  
+    #else
+      // default - WS28x
+      Serial.println("FastLED configured for WS28x\n");
+
+      // ray wu braided nylon WS2812B 50 pixels / meter 
+      // https://www.aliexpress.us/item/3256805646893529.html
+      FastLED.addLeds<WS2812B, LED_DATA, GRB>(leds, NUMPIXELS);  // BGR ordering is typical
+    #endif
+
+    FastLED.setBrightness(128);
+    // FastLED.setBrightness(220); // 12v strand of balls
     Serial.println("main.setup(): FastLED.addLeds() complete\n");
     
     fill_solid(leds, NUMPIXELS, CRGB::Green);
